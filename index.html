@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>动漫收藏 | 我的观看清单</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind自定义主题 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5B8FB9', // 清纯蓝作为主色调
+                        secondary: '#B6CEE8', // 淡蓝色作为辅助色
+                        accent: '#F0F7EE', // 浅绿作为强调色
+                        dark: '#2A3B4C',
+                        light: '#F9FBFD'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .waterfall-column {
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 12px 20px rgba(0,0,0,0.08);
+            }
+            .text-balance {
+                text-wrap: balance;
+            }
+            .search-focus {
+                transition: all 0.3s ease;
+            }
+            .search-focus:focus-within {
+                box-shadow: 0 0 0 3px rgba(91, 143, 185, 0.2);
+            }
+        }
+    </style>
+</head>
+<body class="bg-light text-dark">
+    <!-- 顶部导航栏 -->
+    <header class="sticky top-0 bg-white/90 backdrop-blur-sm shadow-sm z-50 transition-all duration-300">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa fa-film text-primary text-2xl"></i>
+                    <h1 class="text-xl font-bold text-dark">动漫收藏</h1>
+                </div>
+                
+                <!-- 搜索框 -->
+                <div class="relative w-full md:w-64 lg:w-80 search-focus">
+                    <input type="text" id="search-input" placeholder="搜索动漫标题、分类..." 
+                           class="w-full bg-accent/50 border border-secondary/30 rounded-full py-2 pl-10 pr-4 
+                                  focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50
+                                  text-sm md:text-base transition-all">
+                    <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-primary/70"></i>
+                    <button id="clear-search" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="hidden md:block">
+                    <img src="https://picsum.photos/id/64/200" alt="用户头像" class="w-10 h-10 rounded-full border-2 border-primary/30">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- 分类筛选器 -->
+        <div class="mb-8 overflow-x-auto pb-2">
+            <div class="flex gap-2 min-w-max">
+                <button class="category-btn active bg-primary text-white px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all">
+                    全部
+                </button>
+                <button class="category-btn bg-white text-dark border border-gray-200 px-4 py-2 rounded-full text-sm whitespace-nowrap hover:border-primary/30 transition-all">
+                    校园
+                </button>
+                <button class="category-btn bg-white text-dark border border-gray-200 px-4 py-2 rounded-full text-sm whitespace-nowrap hover:border-primary/30 transition-all">
+                    喜剧
+                </button>
+                <button class="category-btn bg-white text-dark border border-gray-200 px-4 py-2 rounded-full text-sm whitespace-nowrap hover:border-primary/30 transition-all">
+                    爱情
+                </button>
+                <button class="category-btn bg-white text-dark border border-gray-200 px-4 py-2 rounded-full text-sm whitespace-nowrap hover:border-primary/30 transition-all">
+                    科幻
+                </button>
+                <button class="category-btn bg-white text-dark border border-gray-200 px-4 py-2 rounded-full text-sm whitespace-nowrap hover:border-primary/30 transition-all">
+                    治愈
+                </button>
+                <button class="category-btn bg-white text-dark border border-gray-200 px-4 py-2 rounded-full text-sm whitespace-nowrap hover:border-primary/30 transition-all">
+                    冒险
+                </button>
+            </div>
+        </div>
+        
+        <!-- 状态筛选 -->
+        <div class="mb-6 flex flex-wrap gap-2">
+            <button class="status-btn active bg-accent text-dark px-3 py-1 rounded-full text-xs font-medium transition-all">
+                全部状态
+            </button>
+            <button class="status-btn bg-white text-dark border border-gray-200 px-3 py-1 rounded-full text-xs font-medium hover:border-primary/30 transition-all">
+                已看完
+            </button>
+            <button class="status-btn bg-white text-dark border border-gray-200 px-3 py-1 rounded-full text-xs font-medium hover:border-primary/30 transition-all">
+                正在看
+            </button>
+        </div>
+        
+        <!-- 统计信息 -->
+        <div class="mb-8">
+            <p class="text-gray-500 text-sm">
+                共找到 <span id="total-count" class="text-primary font-medium">0</span> 部动漫
+                <span id="search-query" class="hidden text-gray-600">，搜索 "<span class="font-medium"></span>"</span>
+                <span id="filter-info" class="hidden text-gray-600">，筛选 "<span class="font-medium"></span>"</span>
+            </p>
+        </div>
+        
+        <!-- 瀑布流布局容器 -->
+        <div id="waterfall-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- 瀑布流列 -->
+            <div class="waterfall-column" id="column-1"></div>
+            <div class="waterfall-column" id="column-2"></div>
+            <div class="waterfall-column" id="column-3"></div>
+            <div class="waterfall-column" id="column-4"></div>
+        </div>
+        
+        <!-- 空状态 -->
+        <div id="empty-state" class="hidden py-20 text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
+                <i class="fa fa-search text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-medium mb-2">未找到匹配的动漫</h3>
+            <p class="text-gray-500 max-w-md mx-auto">尝试使用不同的搜索词或清除筛选条件</p>
+            <button id="reset-filters" class="mt-4 text-primary hover:text-primary/80 text-sm font-medium">
+                清除所有筛选 <i class="fa fa-refresh ml-1"></i>
+            </button>
+        </div>
+        
+        <!-- 加载状态 -->
+        <div id="loading" class="mt-12 text-center hidden">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+            <p class="mt-3 text-gray-500 text-sm">加载中...</p>
+        </div>
+    </main>
+
+    <!-- 底部信息 -->
+    <footer class="bg-white border-t border-gray-100 py-6 mt-16">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa fa-film text-primary/70"></i>
+                    <span class="font-medium text-gray-600">动漫收藏</span>
+                </div>
+                
+                <div class="text-gray-500 text-sm">
+                    &copy; 2023 动漫收藏. 记录每一部精彩瞬间.
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 动漫详情模态框 -->
+    <div id="anime-modal" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px]" id="modal-backdrop"></div>
+        <div class="relative bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-auto m-4 shadow-xl transform transition-all scale-95 opacity-0 duration-300" id="modal-content-wrapper">
+            <button id="close-modal" class="absolute top-4 right-4 bg-white/80 backdrop-blur-sm text-gray-600 w-8 h-8 rounded-full flex items-center justify-center z-10 hover:bg-white transition-colors">
+                <i class="fa fa-times"></i>
+            </button>
+            
+            <div id="modal-content" class="p-0">
+                <!-- 模态框内容将通过JS动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let allAnime = [];
+        let filteredAnime = [];
+        let currentCategory = '全部';
+        let currentStatus = '全部状态';
+        let searchQuery = '';
+        
+        // DOM元素
+        const columns = [
+            document.getElementById('column-1'),
+            document.getElementById('column-2'),
+            document.getElementById('column-3'),
+            document.getElementById('column-4')
+        ];
+        const totalCountElement = document.getElementById('total-count');
+        const emptyState = document.getElementById('empty-state');
+        const loadingElement = document.getElementById('loading');
+        const searchInput = document.getElementById('search-input');
+        const clearSearch = document.getElementById('clear-search');
+        const searchQueryElement = document.getElementById('search-query');
+        const filterInfoElement = document.getElementById('filter-info');
+        const resetFiltersButton = document.getElementById('reset-filters');
+        const animeModal = document.getElementById('anime-modal');
+        const modalContent = document.getElementById('modal-content');
+        const modalContentWrapper = document.getElementById('modal-content-wrapper');
+        const closeModal = document.getElementById('close-modal');
+        const modalBackdrop = document.getElementById('modal-backdrop');
+
+        // 初始化页面
+        init();
+        
+        // 初始化函数
+        async function init() {
+            showLoading();
+            try {
+                // 从JSON文件加载数据
+                const response = await fetch('anime-data.json');
+                allAnime = await response.json();
+                filteredAnime = [...allAnime];
+                
+                // 渲染动漫卡片
+                renderAnimeCards(filteredAnime);
+                
+                // 更新总数
+                updateTotalCount();
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                showErrorState();
+            } finally {
+                hideLoading();
+            }
+            
+            // 绑定事件监听
+            bindEvents();
+        }
+        
+        // 绑定事件
+        function bindEvents() {
+            // 搜索框事件
+            searchInput.addEventListener('input', handleSearch);
+            clearSearch.addEventListener('click', clearSearchInput);
+            
+            // 分类按钮事件
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    currentCategory = this.textContent.trim();
+                    updateCategoryButtons();
+                    filterAnime();
+                });
+            });
+            
+            // 状态按钮事件
+            document.querySelectorAll('.status-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    currentStatus = this.textContent.trim();
+                    updateStatusButtons();
+                    filterAnime();
+                });
+            });
+            
+            // 重置筛选按钮
+            resetFiltersButton.addEventListener('click', resetFilters);
+            
+            // 模态框事件
+            closeModal.addEventListener('click', closeAnimeModal);
+            modalBackdrop.addEventListener('click', closeAnimeModal);
+        }
+        
+        // 渲染动漫卡片
+        function renderAnimeCards(animes) {
+            // 清空所有列
+            columns.forEach(column => column.innerHTML = '');
+            
+            // 如果没有数据，显示空状态
+            if (animes.length === 0) {
+                showEmptyState();
+                return;
+            }
+            
+            // 隐藏空状态
+            hideEmptyState();
+            
+            // 均匀分布到各个列
+            animes.forEach((anime, index) => {
+                const columnIndex = index % columns.length;
+                const card = createAnimeCard(anime);
+                columns[columnIndex].appendChild(card);
+            });
+        }
+        
+        // 创建动漫卡片组件
+        function createAnimeCard(anime) {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 card-hover cursor-pointer';
+            card.setAttribute('data-id', anime.id);
+            
+            // 状态标签样式
+            let statusClass = '';
+            if (anime.status === '已看完') {
+                statusClass = 'bg-green-500';
+            } else if (anime.status === '正在看') {
+                statusClass = 'bg-primary';
+            } else {
+                statusClass = 'bg-yellow-500';
+            }
+            
+            card.innerHTML = `
+                <div class="relative">
+                    <img src="${anime.image}" alt="${anime.title}" class="w-full object-cover aspect-[3/4]">
+                    <div class="absolute top-3 left-3 ${statusClass} text-white text-xs px-2 py-1 rounded-full shadow-sm">
+                        ${anime.status}
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4">
+                        <h3 class="text-white font-bold text-shadow line-clamp-1">${anime.title}</h3>
+                        <div class="flex flex-wrap gap-1 mt-2">
+                            ${anime.category.slice(0, 2).map(cat => `
+                                <span class="bg-white/20 backdrop-blur-sm text-white/90 text-xs px-2 py-0.5 rounded-full">${cat}</span>
+                            `).join('')}
+                            ${anime.category.length > 2 ? `<span class="bg-white/20 backdrop-blur-sm text-white/90 text-xs px-2 py-0.5 rounded-full">+${anime.category.length - 2}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center">
+                            <i class="fa fa-star text-yellow-400 text-sm mr-1"></i>
+                            <span class="text-sm font-medium">${anime.rating}</span>
+                        </div>
+                        <span class="text-xs text-gray-500">${anime.episodes} 集</span>
+                    </div>
+                </div>
+            `;
+            
+            // 点击卡片打开详情
+            card.addEventListener('click', () => openAnimeModal(anime));
+            
+            return card;
+        }
+        
+        // 打开动漫详情模态框
+        function openAnimeModal(anime) {
+            // 设置模态框内容
+            modalContent.innerHTML = `
+                <div class="md:flex">
+                    <div class="md:w-2/5 lg:w-1/3">
+                        <img src="${anime.image}" alt="${anime.title}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="md:w-3/5 lg:w-2/3 p-6">
+                        <h2 class="text-xl md:text-2xl font-bold mb-2">${anime.title}</h2>
+                        
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            ${anime.category.map(cat => `
+                                <span class="bg-accent text-dark text-xs px-3 py-1 rounded-full">${cat}</span>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 text-sm">
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-gray-500">状态</p>
+                                <p class="font-medium">${anime.status}</p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-gray-500">评分</p>
+                                <p class="font-medium flex items-center">
+                                    <i class="fa fa-star text-yellow-400 mr-1"></i> ${anime.rating}
+                                </p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-gray-500">集数</p>
+                                <p class="font-medium">${anime.episodes}</p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-gray-500">播出年份</p>
+                                <p class="font-medium">${anime.airing}</p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg col-span-2 sm:col-span-1">
+                                <p class="text-gray-500">导演</p>
+                                <p class="font-medium">${anime.director}</p>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-base font-bold mb-2 flex items-center">
+                                <i class="fa fa-info-circle text-primary mr-2"></i> 剧情简介
+                            </h3>
+                            <p class="text-gray-700 leading-relaxed text-sm md:text-base">${anime.description}</p>
+                        </div>
+                        
+                        ${anime.tags && anime.tags.length > 0 ? `
+                        <div class="mt-6">
+                            <h3 class="text-base font-bold mb-2 flex items-center">
+                                <i class="fa fa-tags text-primary mr-2"></i> 标签
+                            </h3>
+                            <div class="flex flex-wrap gap-2">
+                                ${anime.tags.map(tag => `
+                                    <span class="bg-gray-100 text-gray-700 text-xs px-3 py-1 rounded-full">${tag}</span>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            // 显示模态框并添加动画
+            animeModal.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                modalContentWrapper.classList.remove('scale-95', 'opacity-0');
+                modalContentWrapper.classList.add('scale-100', 'opacity-100');
+            }, 10);
+            
+            document.body.style.overflow = 'hidden'; // 防止背景滚动
+        }
+        
+        // 关闭动漫详情模态框
+        function closeAnimeModal() {
+            modalContentWrapper.classList.remove('scale-100', 'opacity-100');
+            modalContentWrapper.classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                animeModal.classList.add('opacity-0', 'pointer-events-none');
+                document.body.style.overflow = ''; // 恢复背景滚动
+            }, 300);
+        }
+        
+        // 处理搜索
+        function handleSearch() {
+            searchQuery = searchInput.value.trim().toLowerCase();
+            
+            // 显示/隐藏清除按钮
+            if (searchQuery) {
+                clearSearch.classList.remove('hidden');
+            } else {
+                clearSearch.classList.add('hidden');
+            }
+            
+            // 筛选动漫
+            filterAnime();
+        }
+        
+        // 清除搜索输入
+        function clearSearchInput() {
+            searchInput.value = '';
+            searchQuery = '';
+            clearSearch.classList.add('hidden');
+            filterAnime();
+        }
+        
+        // 筛选动漫
+        function filterAnime() {
+            let result = [...allAnime];
+            
+            // 按分类筛选
+            if (currentCategory !== '全部') {
+                result = result.filter(anime => 
+                    anime.category.some(cat => cat === currentCategory)
+                );
+            }
+            
+            // 按状态筛选
+            if (currentStatus !== '全部状态') {
+                result = result.filter(anime => anime.status === currentStatus);
+            }
+            
+            // 按搜索词筛选
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase();
+                result = result.filter(anime => 
+                    anime.title.toLowerCase().includes(query) ||
+                    anime.category.some(cat => cat.toLowerCase().includes(query)) ||
+                    (anime.tags && anime.tags.some(tag => tag.toLowerCase().includes(query)))
+                );
+            }
+            
+            // 更新筛选结果
+            filteredAnime = result;
+            renderAnimeCards(filteredAnime);
+            updateTotalCount();
+            updateFilterInfo();
+        }
+        
+        // 更新分类按钮状态
+        function updateCategoryButtons() {
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                if (btn.textContent.trim() === currentCategory) {
+                    btn.classList.add('active', 'bg-primary', 'text-white');
+                    btn.classList.remove('bg-white', 'text-dark', 'border', 'border-gray-200', 'hover:border-primary/30');
+                } else {
+                    btn.classList.remove('active', 'bg-primary', 'text-white');
+                    btn.classList.add('bg-white', 'text-dark', 'border', 'border-gray-200', 'hover:border-primary/30');
+                }
+            });
+        }
+        
+        // 更新状态按钮状态
+        function updateStatusButtons() {
+            document.querySelectorAll('.status-btn').forEach(btn => {
+                if (btn.textContent.trim() === currentStatus) {
+                    btn.classList.add('active', 'bg-accent', 'text-dark');
+                    btn.classList.remove('bg-white', 'text-dark', 'border', 'border-gray-200', 'hover:border-primary/30');
+                } else {
+                    btn.classList.remove('active', 'bg-accent', 'text-dark');
+                    btn.classList.add('bg-white', 'text-dark', 'border', 'border-gray-200', 'hover:border-primary/30');
+                }
+            });
+        }
+        
+        // 重置所有筛选条件
+        function resetFilters() {
+            currentCategory = '全部';
+            currentStatus = '全部状态';
+            searchQuery = '';
+            searchInput.value = '';
+            clearSearch.classList.add('hidden');
+            
+            updateCategoryButtons();
+            updateStatusButtons();
+            filterAnime();
+        }
+        
+        // 更新总数显示
+        function updateTotalCount() {
+            totalCountElement.textContent = filteredAnime.length;
+        }
+        
+        // 更新筛选信息显示
+        function updateFilterInfo() {
+            // 重置显示状态
+            searchQueryElement.classList.add('hidden');
+            filterInfoElement.classList.add('hidden');
+            
+            // 显示搜索信息
+            if (searchQuery) {
+                searchQueryElement.classList.remove('hidden');
+                searchQueryElement.querySelector('span').textContent = searchQuery;
+                return;
+            }
+            
+            // 显示筛选信息
+            if (currentCategory !== '全部') {
+                filterInfoElement.classList.remove('hidden');
+                filterInfoElement.querySelector('span').textContent = currentCategory;
+            } else if (currentStatus !== '全部状态') {
+                filterInfoElement.classList.remove('hidden');
+                filterInfoElement.querySelector('span').textContent = currentStatus;
+            }
+        }
+        
+        // 显示加载状态
+        function showLoading() {
+            loadingElement.classList.remove('hidden');
+        }
+        
+        // 隐藏加载状态
+        function hideLoading() {
+            loadingElement.classList.add('hidden');
+        }
+        
+        // 显示空状态
+        function showEmptyState() {
+            emptyState.classList.remove('hidden');
+        }
+        
+        // 隐藏空状态
+        function hideEmptyState() {
+            emptyState.classList.add('hidden');
+        }
+        
+        // 显示错误状态
+        function showErrorState() {
+            emptyState.querySelector('h3').textContent = '加载失败';
+            emptyState.querySelector('p').textContent = '无法加载动漫数据，请稍后再试';
+            resetFiltersButton.textContent = '重试';
+            resetFiltersButton.innerHTML = '重试 <i class="fa fa-refresh ml-1"></i>';
+            resetFiltersButton.onclick = init;
+            showEmptyState();
+        }
+    </script>
+</body>
+</html>
+    
