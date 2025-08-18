@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>笔墨云烟</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* 水墨风格配色与基础设置 */
+        :root {
+            --ink-black: #1A1A1A;
+            --ink-gray: #5C5C5C;
+            --ink-light: #F5F5F0;
+            --paper-color: #F9F7F3;
+            --accent-red: #C8102E;
+            --matcha-green: #a5d6a7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Sans SC', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+        }
+
+        body {
+            background-color: var(--paper-color);
+            background-image: 
+                url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%231a1a1a' fill-opacity='0.02' fill-rule='evenodd'/%3E%3C/svg%3E"),
+                linear-gradient(135deg, var(--paper-color) 0%, #F1EDEA 100%);
+            line-height: 1.8;
+            color: var(--ink-gray);
+        }
+
+        /* 容器与动画 */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 头部样式 */
+        .header {
+            text-align: center;
+            padding: 2rem 0;
+            position: relative;
+        }
+
+        /* 圆形图片容器 */
+.ink-sakura {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 1rem;
+    border-radius: 50%; /* 关键修改：将边框半径设为50%以实现圆形 */
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    background-image: url('http://www.datazzh.top/wp-content/uploads/2024/08/cropped-logoMint.png');
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    animation: breathe 3s infinite ease-in-out;
+}
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .ink-sakura::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.1) 100%);
+    border-radius: 50%; /* 保持圆形遮罩 */
+}
+
+        .ink-sakura:hover {
+            animation-play-state: paused;
+        }
+
+        h1 {
+            color: var(--ink-black);
+            font-size: 2.2rem;
+            letter-spacing: 0.2em;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .subtitle {
+            color: var(--ink-gray);
+            font-size: 1rem;
+            letter-spacing: 0.1em;
+            font-weight: 300;
+        }
+
+        /* 导航按钮 */
+        .nav-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+
+        .nav-button {
+            background: var(--matcha-green);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            flex: 1 1 45%;
+            text-align: center;
+            max-width: 200px;
+            font-weight: 300;
+            letter-spacing: 0.05em;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: all 0.6s ease;
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(165, 214, 167, 0.4);
+        }
+
+        .nav-button:hover::before {
+            left: 100%;
+        }
+
+        /* 内容卡片 */
+        .card {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%231a1a1a' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E") no-repeat;
+            opacity: 0.5;
+            z-index: 0;
+        }
+
+        .card h2 {
+            color: var(--ink-black);
+            font-size: 1.5rem;
+            margin-bottom: 0.7rem;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card h2::before {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 30px;
+            height: 2px;
+            background-color: var(--matcha-green);
+        }
+
+        .card p, .card ul {
+            position: relative;
+            z-index: 1;
+        }
+
+        .card ul {
+            list-style-type: none;
+            margin-top: 0.5rem;
+        }
+
+        .card ul li {
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .card ul li::before {
+            content: '•';
+            color: var(--matcha-green);
+            position: absolute;
+            left: 0.5rem;
+            top: 0;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8rem; }
+            .nav-button { flex: 1 1 100%; }
+            .ink-sakura { width: 100px; height: 100px; }
+        }
+
+        @media (max-width: 480px) {
+            .container { padding: 10px; }
+            .card { padding: 1.2rem; }
+        }
+
+        /* 页脚样式 */
+        .footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: var(--ink-gray);
+            font-size: 0.9rem;
+            position: relative;
+        }
+
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(0,0,0,0.1), transparent);
+        }
+
+        .lang-switch {
+            color: var(--matcha-green);
+            text-decoration: none;
+            border-bottom: 1px dashed;
+            transition: all 0.3s ease;
+        }
+
+        .lang-switch:hover {
+            color: var(--accent-red);
+            border-bottom-style: solid;
+        }
+
+        /* 备案信息样式 */
+        .beian-info {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: rgba(92, 92, 92, 0.7);
+        }
+
+        .copyright {
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: rgba(92, 92, 92, 0.7);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="ink-sakura"></div>
+            <h1>笔墨云烟</h1>
+            <p class="subtitle">欢迎</p>
+<p class="subtitle">welcome</p>
+<p class="subtitle">ようこそう</p>
+        </header>
+
+        <nav class="nav-buttons">
+            <a href="https://www.datazzh.top/about/" class="nav-button">
+                <i class="fas fa-leaf"></i> 关于我们
+            </a>
+            <a href="https://www.datazzh.top/home/" class="nav-button">
+                <i class="fas fa-mobile-alt"></i> 前往阅读
+            </a>
+        </nav>
+
+        <div class="card">
+            <h2>✏️</h2>
+            <p>学习与记录</p>
+        </div>
+
+
+        <footer class="footer">
+    <div class="github-badge-big beian-info">
+        <span class="badge-subject"><i class="fa fa-id-card"></i> 备案号 </span>
+        <span class="badge-subject">
+            <!-- 备案链接 -->
+            <a href="https://beian.miit.gov.cn/" target="_blank" one-link-mark="yes" class="lang-switch">赣ICP备2024020650号-1</a>
+        </span>
+    </div>
+            <div class="copyright">
+                © 2024-2025笔墨云烟. 保留所有权利.
+            </div>
+        <span id="runtime_span"></span>
+<script type="text/javascript">
+    function show_runtime() {
+        window.setTimeout("show_runtime()", 1000);
+        X = new Date("1/5/2024 :00:00");
+        Y = new Date();
+        T = (Y.getTime() - X.getTime());
+        M = 24 * 60 * 60 * 1000;
+        a = T / M;
+        A = Math.floor(a);
+        b = (a - A) * 24;
+        B = Math.floor(b);
+        c = (b - B) * 60;
+        C = Math.floor((b - B) * 60);
+        D = Math.floor((c - C) * 60);
+        runtime_span.innerHTML = "网站稳定运行: " + A + "天" + B + "小时" + C + "分" + D + "秒"
+    }
+    show_runtime();
+</script>
+        </footer>
+    </div>
+</body>
+</html>
