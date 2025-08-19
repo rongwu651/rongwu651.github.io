@@ -71,6 +71,7 @@
                 line-height: 1.25rem;
             }
         }
+		
     </style>
 </head>
 <body class="bg-light text-dark">
@@ -138,14 +139,9 @@
             </p>
         </div>
         
-        <!-- 瀑布流布局容器 -->
-        <div id="waterfall-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            <div class="waterfall-column" id="column-1"></div>
-            <div class="waterfall-column" id="column-2"></div>
-            <div class="waterfall-column" id="column-3"></div>
-            <div class="waterfall-column" id="column-4"></div>
-            <div class="waterfall-column" id="column-5"></div>
-            <div class="waterfall-column" id="column-6"></div>
+        <!-- 布局容器 -->
+        <div id="anime-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <!-- 卡片将直接动态插入到这里 -->
         </div>
         
         <!-- 空状态 -->
@@ -186,12 +182,8 @@
     <!-- 动漫详情模态框 -->
     <div id="anime-modal" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px]" id="modal-backdrop"></div>
-        <div class="relative bg-white rounded-xl w-full max-w-4xl overflow-auto m-4 shadow-xl transform transition-all scale-95 opacity-0 duration-300" id="modal-content-wrapper">
-            <button id="close-modal" class="absolute top-2 right-2 bg-white/80 backdrop-blur-sm text-gray-600 w-6 h-6 rounded-full flex items-center justify-center z-10 hover:bg-white transition-colors">
-                <i class="fa fa-times text-sm"></i>
-            </button>
-            
-            <div id="modal-content" class="p-6">
+        <div class="relative bg-white rounded-xl w-full max-w-4xl overflow-auto m-4 shadow-xl transform transition-all scale-95 opacity-0 duration-300 max-h-[90vh]" id="modal-content-wrapper">
+            <div id="modal-content" class="p-4">
                 <!-- 模态框内容将通过JS动态生成 -->
             </div>
         </div>
@@ -336,18 +328,20 @@
         
         // 渲染动漫卡片
         function renderAnimeCards(animes) {
-            columns.forEach(column => column.innerHTML = '');
-            
+            const gridContainer = document.getElementById('anime-grid');
+            gridContainer.innerHTML = ''; // 清空容器
+                
             if (animes.length === 0) {
                 showEmptyState();
                 return;
             }
-            
+                
             hideEmptyState();
-            animes.forEach((anime, index) => {
-                const columnIndex = index % columns.length;
+                
+            // 直接按顺序插入卡片，CSS Grid会自动排列
+            animes.forEach(anime => {
                 const card = createAnimeCard(anime);
-                columns[columnIndex].appendChild(card);
+                gridContainer.appendChild(card);
             });
         }
         
@@ -408,155 +402,223 @@
         
         // 打开动漫详情模态框
         function openAnimeModal(anime) {
-            // 设置初始显示的第一季数据
-            let currentSeason = anime.seasons[0];
-            
-            // 设置模态框内容
+			const modalContent = document.getElementById('modal-content');
+			    if (anime.seasons.length === 1) {
+			        modalContent.classList.add('p-0'); // 单季移除内边距
+			    } else {
+			        modalContent.classList.remove('p-0'); // 多季保留内边距
+			    }
+
+            // 检查季数
+            if (anime.seasons.length === 1) {
+            // 单季布局
+			const season = anime.seasons[0];
 			modalContent.innerHTML = `
-				<div class="space-y-6">
-					<!-- 顶部标题和基本信息 -->
-					<div class="flex flex-col md:flex-row gap-6">
-						<img id="modal-season-image" src="${currentSeason.image || anime.image}" alt="${anime.title}" 
-							 class="w-full md:w-64 h-80 object-cover rounded-lg shadow-md">
+				<div class="flex flex-col md:flex-row h-full max-h-[80vh] md:max-h-none overflow-y-auto">
+					<!-- 左侧图片区域 - 无内边距 -->
+					<div class="w-full md:w-2/5 lg:w-1/3 h-64 md:h-auto relative flex-shrink-0">
+						<img src="${season.image || anime.image}" alt="${anime.title}" class="absolute inset-0 w-full h-full object-cover">
+					</div>
+					
+					<!-- 右侧内容区域 -->
+					<div class="w-full md:w-3/5 lg:w-2/3 p-6 overflow-y-auto">
+						<!-- 关闭按钮放在右上角 -->
+						<button id="close-modal-inner" class="absolute top-4 right-4 bg-white/80 backdrop-blur-sm text-gray-600 w-8 h-8 rounded-full flex items-center justify-center z-10 hover:bg-white transition-colors">
+							<i class="fa fa-times"></i>
+						</button>
 						
-						<div class="flex-1">
-							<h2 class="text-2xl font-bold mb-2">${anime.title}</h2>
-							<div class="flex flex-wrap gap-2 mb-4">
-								${anime.tags.map(tag => `
-									<span class="bg-accent text-dark text-sm px-3 py-1 rounded-full">${tag}</span>
-								`).join('')}
+						<h2 class="text-xl md:text-2xl font-bold mb-2 pr-6">${anime.title}</h2>
+						
+						<div class="flex flex-wrap gap-2 mb-4">
+							${anime.tags.map(tag => `
+								<span class="bg-accent text-dark text-xs px-3 py-1 rounded-full">${tag}</span>
+							`).join('')}
+						</div>
+						
+						<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 text-sm">
+							<div class="bg-gray-50 p-3 rounded-lg">
+								<p class="text-gray-500">状态</p>
+								<p class="font-medium">${season.status}</p>
 							</div>
-							
-							<div class="grid grid-cols-2 gap-4 mb-4">
-								<div>
-									<p class="text-gray-500 text-sm">导演</p>
-									<p class="font-medium">${anime.director}</p>
-								</div>
-								<div>
-									<p class="text-gray-500 text-sm">综合评分</p>
-									<p class="font-medium">${generateStarRating(anime.star)}</p>
-								</div>
-								<div>
-									<p class="text-gray-500 text-sm">状态</p>
-									<p class="font-medium">
-										<span class="text-sm px-2 py-0.5 rounded-full ${anime.status === '已看完' ? 'bg-green-100 text-green-800' : anime.status === '正在看' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">
-											${anime.status}
-										</span>
-									</p>
-								</div>
+							<div class="bg-gray-50 p-3 rounded-lg">
+								<p class="text-gray-500">评分</p>
+								<p class="font-medium flex items-center">
+									${generateStarRating(season.star)}
+								</p>
 							</div>
-							
-							<!-- 季数选择 -->
-							<div class="mb-4">
-								<h3 class="text-lg font-bold mb-3">季数详情</h3>
-								<div class="flex flex-wrap gap-2">
-									${anime.seasons.map(season => {
-										let btnClass = 'bg-gray-100 text-gray-700';
-										if (season.status === '已看完') btnClass = 'bg-green-100 text-green-700';
-										else if (season.status === '正在看') btnClass = 'bg-blue-100 text-blue-700';
-										
-										return `
-											<button class="season-btn px-4 py-2 rounded-lg text-sm font-medium transition-all ${btnClass} hover:shadow-sm"
-													data-season="${season.season}">
-												${season.title || `第${season.season}季`}
-											</button>
-										`;
-									}).join('')}
-								</div>
+							<div class="bg-gray-50 p-3 rounded-lg">
+								<p class="text-gray-500">集数</p>
+								<p class="font-medium">${season.episodes}</p>
+							</div>
+							<div class="bg-gray-50 p-3 rounded-lg">
+								<p class="text-gray-500">播出年份</p>
+								<p class="font-medium">${season.airing}</p>
+							</div>
+							<div class="bg-gray-50 p-3 rounded-lg col-span-2 sm:col-span-1">
+								<p class="text-gray-500">导演</p>
+								<p class="font-medium">${anime.director}</p>
 							</div>
 						</div>
-					</div>
-					
-					<!-- 当前季详情部分 -->
-					<div class="bg-gray-50 p-4 rounded-lg">
-					    <h3 class="text-lg font-bold mb-3">当前季详情</h3>
-					    <div id="season-details" class="flex flex-wrap gap-4">
-					        <div class="flex flex-col">
-					            <span class="text-gray-500 text-sm">集数</span>
-					            <span class="font-medium">${currentSeason.episodes}</span>
-					        </div>
-					        <div class="flex flex-col">
-					            <span class="text-gray-500 text-sm">播出时间</span>
-					            <span class="font-medium">${currentSeason.airing}</span>
-					        </div>
-					        <div class="flex flex-col">
-					            <span class="text-gray-500 text-sm">评分</span>
-					            <span class="font-medium">${generateStarRating(currentSeason.star)}</span>
-					        </div>
-					        <div class="flex flex-col">
-					            <span class="text-gray-500 text-sm">状态</span>
-					            <span class="font-medium">
-					                <span class="text-sm px-2 py-0.5 rounded-full ${currentSeason.status === '已看完' ? 'bg-green-100 text-green-800' : currentSeason.status === '正在看' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">
-					                    ${currentSeason.status}
-					                </span>
-					            </span>
-					        </div>
-					    </div>
-					</div>
-					
-					<!-- 剧情简介 -->
-					<div>
-						<h3 class="text-lg font-bold mb-3">剧情简介</h3>
-						<p id="modal-season-description" class="text-gray-700 leading-relaxed">${currentSeason.description || anime.description}</p>
+						
+						<div>
+							<h3 class="text-base font-bold mb-2 flex items-center">
+								<i class="fa fa-info-circle text-primary mr-2"></i> 剧情简介
+							</h3>
+							<p class="text-gray-700 leading-relaxed text-sm md:text-base">${season.description || anime.description}</p>
+						</div>
 					</div>
 				</div>
 			`;
-            
-            // 添加季点击事件
-			document.querySelectorAll('.season-btn').forEach(btn => {
-			    btn.addEventListener('click', function() {
-			        const season = this.dataset.season;
-			        const selectedSeason = anime.seasons.find(s => s.season == season);
-			        
-			        // 更新按钮激活状态
-			        document.querySelectorAll('.season-btn').forEach(b => {
-			            b.classList.remove('bg-primary/10', 'ring-2', 'ring-primary/50');
-			        });
-			        this.classList.add('bg-primary/10', 'ring-2', 'ring-primary/50');
-			        
-			        // 更新图片和详情
-			        document.getElementById('modal-season-image').src = selectedSeason.image || anime.image;
-			        document.getElementById('modal-season-description').textContent = 
-			            selectedSeason.description || anime.description;
-			        
-			        // 更新季详情
-			        const seasonDetails = document.getElementById('season-details');
-			        seasonDetails.innerHTML = `
-			            <div class="flex flex-col">
-			                <span class="text-gray-500 text-sm">集数</span>
-			                <span class="font-medium">${selectedSeason.episodes}</span>
-			            </div>
-			            <div class="flex flex-col">
-			                <span class="text-gray-500 text-sm">播出时间</span>
-			                <span class="font-medium">${selectedSeason.airing}</span>
-			            </div>
-			            <div class="flex flex-col">
-			                <span class="text-gray-500 text-sm">评分</span>
-			                <span class="font-medium">${generateStarRating(selectedSeason.star)}</span>
-			            </div>
-			            <div class="flex flex-col">
-			                <span class="text-gray-500 text-sm">状态</span>
-			                <span class="font-medium">
-			                    <span class="text-sm px-2 py-0.5 rounded-full ${selectedSeason.status === '已看完' ? 'bg-green-100 text-green-800' : selectedSeason.status === '正在看' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">
-			                        ${selectedSeason.status}
-			                    </span>
-			                </span>
-			            </div>
-			        `;
-			    });
-			});
-        
-        // 默认激活第一季
-        document.querySelector('.season-btn')?.classList.add('bg-primary/10', 'ring-2', 'ring-primary/50');
-        
-        // 显示模态框
-        animeModal.classList.remove('opacity-0', 'pointer-events-none');
-        setTimeout(() => {
-            modalContentWrapper.classList.remove('scale-95', 'opacity-0');
-            modalContentWrapper.classList.add('scale-100', 'opacity-100');
-        }, 10);
-        document.body.style.overflow = 'hidden';
-    }
+			
+			// 添加内部关闭按钮事件
+			document.getElementById('close-modal-inner').addEventListener('click', closeAnimeModal);
+            } else {
+                // 多季布局
+                let currentSeason = anime.seasons[0];
+                    
+                modalContent.innerHTML = `
+                    <div class="space-y-3">
+                        <!-- 顶部标题和基本信息 -->
+						<button id="close-modal-inner" class="absolute top-4 right-4 bg-white/80 backdrop-blur-sm text-gray-600 w-8 h-8 rounded-full flex items-center justify-center z-10 hover:bg-white transition-colors">
+							<i class="fa fa-times"></i>
+						</button>
+                        <div class="flex flex-col md:flex-row gap-6">
+                            <img id="modal-season-image" src="${currentSeason.image || anime.image}" alt="${anime.title}" 
+                                 class="w-full md:w-64 h-80 object-cover rounded-lg shadow-md">
+                            
+                            <div class="flex-1">
+                                <h2 class="text-2xl font-bold mb-2">${anime.title}</h2>
+                                <div class="flex flex-wrap gap-2 mb-4">
+                                    ${anime.tags.map(tag => `
+                                        <span class="bg-accent text-dark text-sm px-3 py-1 rounded-full">${tag}</span>
+                                    `).join('')}
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <p class="text-gray-500 text-sm">导演</p>
+                                        <p class="font-medium">${anime.director}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-500 text-sm">综合评分</p>
+                                        <p class="font-medium">${generateStarRating(anime.star)}</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- 季数选择 -->
+                                <div class="mb-4">
+                                    <h3 class="text-lg font-bold mb-3">季数详情</h3>
+                                    <div class="flex flex-wrap gap-2">
+                                        ${anime.seasons.map(season => {
+                                            let btnClass = 'bg-gray-100 text-gray-700';
+                                            if (season.status === '已看完') btnClass = 'bg-green-100 text-green-700';
+                                            else if (season.status === '正在看') btnClass = 'bg-blue-100 text-blue-700';
+                                            
+                                            return `
+                                                <button class="season-btn px-4 py-2 rounded-lg text-sm font-medium transition-all ${btnClass} hover:shadow-sm"
+                                                        data-season="${season.season}">
+                                                    ${season.title || `第${season.season}季`}
+                                                </button>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                                
+                                <!-- 当前季详情部分 -->
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <div id="season-details" class="flex flex-wrap gap-4">
+                                        <div class="flex flex-col">
+                                            <span class="text-gray-500 text-sm">集数</span>
+                                            <span class="font-medium">${currentSeason.episodes}</span>
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-gray-500 text-sm">播出时间</span>
+                                            <span class="font-medium">${currentSeason.airing}</span>
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-gray-500 text-sm">状态</span>
+                                            <span class="font-medium">
+                                                <span class="text-sm px-2 py-0.5 rounded-full ${currentSeason.status === '已看完' ? 'bg-green-100 text-green-800' : currentSeason.status === '正在看' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">
+                                                    ${currentSeason.status}
+                                                </span>
+                                            </span>
+                                        </div>
+										<div class="flex flex-col">
+										    <span class="text-gray-500 text-sm">评分</span>
+										    <span class="font-medium">${generateStarRating(currentSeason.star)}</span>
+										</div>
+										
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 剧情简介 -->
+                        <div>
+                            <h3 class="text-lg font-bold mb-3">剧情简介</h3>
+                            <p id="modal-season-description" class="text-gray-700 leading-relaxed">${currentSeason.description || anime.description}</p>
+                        </div>
+                    </div>
+                `;
+                
+                // 添加季点击事件（仅多季布局需要）
+                document.querySelectorAll('.season-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const season = this.dataset.season;
+                        const selectedSeason = anime.seasons.find(s => s.season == season);
+                        
+                        // 更新按钮激活状态
+                        document.querySelectorAll('.season-btn').forEach(b => {
+                            b.classList.remove('bg-primary/10', 'ring-2', 'ring-primary/50');
+                        });
+                        this.classList.add('bg-primary/10', 'ring-2', 'ring-primary/50');
+                        
+                        // 更新图片和详情
+                        document.getElementById('modal-season-image').src = selectedSeason.image || anime.image;
+                        document.getElementById('modal-season-description').textContent = 
+                            selectedSeason.description || anime.description;
+                        
+                        // 更新季详情
+                        const seasonDetails = document.getElementById('season-details');
+                        seasonDetails.innerHTML = `
+                            <div class="flex flex-col">
+                                <span class="text-gray-500 text-sm">集数</span>
+                                <span class="font-medium">${selectedSeason.episodes}</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-gray-500 text-sm">播出时间</span>
+                                <span class="font-medium">${selectedSeason.airing}</span>
+                            </div>
+
+                            <div class="flex flex-col">
+                                <span class="text-gray-500 text-sm">状态</span>
+                                <span class="font-medium">
+                                    <span class="text-sm px-2 py-0.5 rounded-full ${selectedSeason.status === '已看完' ? 'bg-green-100 text-green-800' : selectedSeason.status === '正在看' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">
+                                        ${selectedSeason.status}
+                                    </span>
+                                </span>
+                            </div>
+							<div class="flex flex-col">
+							    <span class="text-gray-500 text-sm">评分</span>
+							    <span class="font-medium">${generateStarRating(selectedSeason.star)}</span>
+							</div>
+                        `;
+                    });
+                });
+                
+                // 默认激活第一季
+                document.querySelector('.season-btn')?.classList.add('bg-primary/10', 'ring-2', 'ring-primary/50');
+            }
+            // 绑定关闭按钮事件
+    document.getElementById('close-modal-inner')?.addEventListener('click', closeAnimeModal);
+            // 显示模态框
+            animeModal.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                modalContentWrapper.classList.remove('scale-95', 'opacity-0');
+                modalContentWrapper.classList.add('scale-100', 'opacity-100');
+            }, 10);
+            document.body.style.overflow = 'hidden';
+        }
         
         // 关闭动漫详情模态框
         function closeAnimeModal() {
