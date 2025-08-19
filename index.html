@@ -17,7 +17,11 @@
                         secondary: '#B6CEE8',
                         accent: '#F0F7EE',
                         dark: '#2A3B4C',
-                        light: '#F9FBFD'
+                        light: '#F9FBFD',
+                        // 状态颜色
+                        watched: '#10B981',      // 已看完 - 绿色
+                        watching: '#3B82F6',     // 部分观看 - 蓝色
+                        notWatched: '#F59E0B'    // 未看 - 黄色
                     },
                     fontFamily: {
                         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -70,8 +74,88 @@
                 font-size: 0.875rem;
                 line-height: 1.25rem;
             }
+            
+            /*剧情简介滚动容器样式 */
+            .synopsis-container {
+                max-height: 100px;
+                overflow-y: auto;
+                padding-right: 8px;
+            }
+            /* 滚动条美化 */
+            .synopsis-container::-webkit-scrollbar {
+                width: 6px;
+            }
+            .synopsis-container::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 10px;
+            }
+            .synopsis-container::-webkit-scrollbar-thumb {
+                background: #c1c1c1;
+                border-radius: 10px;
+            }
+            .synopsis-container::-webkit-scrollbar-thumb:hover {
+                background: #a1a1a1;
+            }
+            
+            /* 标签折叠区域样式 */
+            .tag-collapse {
+                transition: all 0.3s ease;
+                overflow: hidden;
+            }
+            .tag-collapse.closed {
+                max-height: 0;
+                opacity: 0;
+            }
+            .tag-collapse.open {
+                max-height: 500px;
+                opacity: 1;
+            }
+            .collapse-toggle {
+                transition: all 0.3s ease;
+            }
+            .collapse-toggle.closed i {
+                transform: rotate(0deg);
+            }
+            .collapse-toggle.open i {
+                transform: rotate(180deg);
+            }
+			.image-container {
+			    overflow: hidden;
+			  }
         }
+		/*图片查看器样式 */
+		.image-viewer-zoom {
+		    transition: transform 0.3s ease;
+		}
+		.image-viewer-zoom:hover {
+		    transform: scale(1.03);
+		    cursor: zoom-in;
+		}
+		/* 图片加载动画样式 */
+		.image-loading {
+		    position: relative;
+		    overflow: hidden;
+		    background-color: #f3f4f6;
+		}
 		
+		.image-loading::after {
+		    content: '';
+		    position: absolute;
+		    top: 50%;
+		    left: 50%;
+		    width: 24px;
+		    height: 24px;
+		    margin: -12px 0 0 -12px;
+		    border: 2px solid #e5e7eb;
+		    border-top: 2px solid #5B8FB9;
+		    border-radius: 50%;
+		    animation: spin 1s linear infinite;
+		}
+		
+		@keyframes spin {
+		    0% { transform: rotate(0deg); }
+		    100% { transform: rotate(360deg); }
+		}
     </style>
 </head>
 <body class="bg-light text-dark">
@@ -115,6 +199,13 @@
                 </button>
                 <!-- 标签将通过JS动态生成 -->
             </div>
+            
+            <!-- 标签折叠控制 -->
+            <div id="tag-collapse-control" class="mt-2 text-center hidden">
+                <button id="toggle-tags" class="text-primary hover:text-primary/80 text-sm font-medium collapse-toggle closed">
+                    展开更多标签 <i class="fa fa-chevron-down ml-1 transition-transform"></i>
+                </button>
+            </div>
         </div>
         
         <!-- 状态筛选 -->
@@ -126,7 +217,10 @@
                 已看完
             </button>
             <button class="status-btn bg-white text-dark border border-gray-200 px-3 py-1 rounded-full text-xs font-medium hover:border-primary/30 transition-all">
-                正在看
+                部分观看
+            </button>
+            <button class="status-btn bg-white text-dark border border-gray-200 px-3 py-1 rounded-full text-xs font-medium hover:border-primary/30 transition-all">
+                未看
             </button>
         </div>
         
@@ -188,6 +282,16 @@
             </div>
         </div>
     </div>
+	<!-- 图片查看器模态框 -->
+	<div id="image-viewer" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+	    <div class="absolute inset-0 bg-black/90 backdrop-blur-[2px]" id="image-viewer-backdrop"></div>
+	    <div class="relative max-w-5xl max-h-[90vh] p-4">
+	        <button id="close-image-viewer" class="absolute -top-12 right-0 bg-black/50 hover:bg-black/70 text-white w-10 h-10 rounded-full flex items-center justify-center z-10 transition-colors">
+	            <i class="fa fa-times text-xl"></i>
+	        </button>
+	        <img id="viewer-image" src="" alt="大图预览" class="max-w-full max-h-[90vh] object-contain">
+	    </div>
+	</div>
 
     <script>
         // 全局变量
@@ -197,16 +301,9 @@
         let currentTag = '全部';
         let currentStatus = '全部状态';
         let searchQuery = '';
+        let tagsCollapsed = true; // 标签折叠状态
         
         // DOM元素
-        const columns = [
-            document.getElementById('column-1'),
-            document.getElementById('column-2'),
-            document.getElementById('column-3'),
-            document.getElementById('column-4'),
-            document.getElementById('column-5'),
-            document.getElementById('column-6')
-        ];
         const totalCountElement = document.getElementById('total-count');
         const emptyState = document.getElementById('empty-state');
         const loadingElement = document.getElementById('loading');
@@ -218,10 +315,17 @@
         const animeModal = document.getElementById('anime-modal');
         const modalContent = document.getElementById('modal-content');
         const modalContentWrapper = document.getElementById('modal-content-wrapper');
-        const closeModal = document.getElementById('close-modal');
         const modalBackdrop = document.getElementById('modal-backdrop');
         const tagFiltersContainer = document.getElementById('tag-filters');
+        const tagCollapseControl = document.getElementById('tag-collapse-control');
+        const toggleTagsButton = document.getElementById('toggle-tags');
+        const tagCollapseArea = document.createElement('div'); // 创建标签折叠区域
 
+		const imageViewer = document.getElementById('image-viewer');
+		const imageViewerBackdrop = document.getElementById('image-viewer-backdrop');
+		const viewerImage = document.getElementById('viewer-image');
+		const closeImageViewer = document.getElementById('close-image-viewer');
+		
         // 初始化页面
         init();
         
@@ -292,20 +396,76 @@
             
             tagFiltersContainer.appendChild(allButton);
             
+            // 设置标签折叠区域
+            tagCollapseArea.className = 'tag-collapse closed w-full mt-2';
+            tagCollapseArea.style.transition = 'max-height 0.3s ease, opacity 0.3s ease';
+            
             // 添加其他标签按钮
-            Array.from(allTags).forEach(tag => {
-                const button = document.createElement('button');
-                button.className = 'tag-btn bg-white text-dark border border-gray-200 px-4 py-2 rounded-full text-sm whitespace-nowrap hover:border-primary/30 transition-all';
-                button.textContent = tag;
+            const tagsArray = Array.from(allTags);
+            
+            // 如果标签数量超过8个，启用折叠功能
+            if (tagsArray.length > 8) {
+                // 前8个标签直接显示
+                for (let i = 0; i < Math.min(8, tagsArray.length); i++) {
+                    const tag = tagsArray[i];
+                    createTagButton(tag, tagFiltersContainer);
+                }
                 
-                button.addEventListener('click', function() {
-                    currentTag = this.textContent.trim();
-                    updateTagButtons();
-                    filterAnime();
+                // 剩余的标签放入折叠区域
+                const collapseContainer = document.createElement('div');
+                collapseContainer.className = 'flex flex-wrap gap-2';
+                
+                for (let i = 8; i < tagsArray.length; i++) {
+                    const tag = tagsArray[i];
+                    createTagButton(tag, collapseContainer);
+                }
+                
+                tagCollapseArea.appendChild(collapseContainer);
+                tagFiltersContainer.appendChild(tagCollapseArea);
+                
+                // 显示折叠控制按钮
+                tagCollapseControl.classList.remove('hidden');
+            } else {
+                // 标签数量少，直接全部显示
+                tagsArray.forEach(tag => {
+                    createTagButton(tag, tagFiltersContainer);
                 });
-                
-                tagFiltersContainer.appendChild(button);
+                tagCollapseControl.classList.add('hidden');
+            }
+        }
+        
+        // 创建标签按钮的辅助函数
+        function createTagButton(tag, container) {
+            const button = document.createElement('button');
+            button.className = 'tag-btn bg-white text-dark border border-gray-200 px-4 py-2 rounded-full text-sm whitespace-nowrap hover:border-primary/30 transition-all';
+            button.textContent = tag;
+            
+            button.addEventListener('click', function() {
+                currentTag = this.textContent.trim();
+                updateTagButtons();
+                filterAnime();
             });
+            
+            container.appendChild(button);
+        }
+        
+        // 切换标签折叠状态
+        function toggleTags() {
+            tagsCollapsed = !tagsCollapsed;
+            
+            if (tagsCollapsed) {
+                tagCollapseArea.classList.remove('open');
+                tagCollapseArea.classList.add('closed');
+                toggleTagsButton.classList.remove('open');
+                toggleTagsButton.classList.add('closed');
+                toggleTagsButton.innerHTML = '展开更多标签 <i class="fa fa-chevron-down ml-1 transition-transform"></i>';
+            } else {
+                tagCollapseArea.classList.remove('closed');
+                tagCollapseArea.classList.add('open');
+                toggleTagsButton.classList.remove('closed');
+                toggleTagsButton.classList.add('open');
+                toggleTagsButton.innerHTML = '收起标签 <i class="fa fa-chevron-up ml-1 transition-transform"></i>';
+            }
         }
         
         // 绑定事件
@@ -322,8 +482,23 @@
             });
             
             resetFiltersButton.addEventListener('click', resetFilters);
-            closeModal.addEventListener('click', closeAnimeModal);
             modalBackdrop.addEventListener('click', closeAnimeModal);
+            
+            // 绑定标签折叠按钮事件
+            toggleTagsButton.addEventListener('click', toggleTags);
+			
+			// 图片查看器事件
+			imageViewerBackdrop.addEventListener('click', closeImageViewerModal);
+			closeImageViewer.addEventListener('click', closeImageViewerModal);
+			
+			// 为所有图片添加点击事件委托
+			document.addEventListener('click', function(e) {
+				const img = e.target.closest('img[data-viewable="true"]');
+				if (img) {
+					e.stopPropagation();
+					openImageViewer(img.src);
+				}
+			});
         }
         
         // 渲染动漫卡片
@@ -351,14 +526,18 @@
             card.className = 'bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 card-hover cursor-pointer';
             card.setAttribute('data-id', anime.id);
             
-            // 系列整体状态样式
+            // 根据状态设置不同的颜色
             let statusClass = '';
+            let statusColor = '';
             if (anime.status === '已看完') {
-                statusClass = 'bg-green-500';
-            } else if (anime.status === '正在看') {
-                statusClass = 'bg-primary';
+                statusClass = 'bg-watched';
+                statusColor = 'watched';
+            } else if (anime.status === '部分观看') {
+                statusClass = 'bg-watching';
+                statusColor = 'watching';
             } else {
-                statusClass = 'bg-yellow-500';
+                statusClass = 'bg-notWatched';
+                statusColor = 'notWatched';
             }
             
             // 计算总集数
@@ -368,7 +547,11 @@
             
             card.innerHTML = `
                 <div class="relative">
-                    <img src="${anime.image}" alt="${anime.title}" class="w-full object-cover aspect-[2/3]">
+                    <div class="image-loading aspect-[2/3]">
+                        <img src="${anime.image}" alt="${anime.title}" 
+                             class="w-full h-full object-cover opacity-0 transition-opacity duration-300"
+                             onload="this.classList.remove('opacity-0'); this.parentElement.classList.remove('image-loading')">
+                    </div>
                     <div class="absolute top-2 left-2 ${statusClass} text-white text-xs px-2 py-0.5 rounded-full shadow-sm">
                         ${anime.status}
                     </div>
@@ -402,76 +585,84 @@
         
         // 打开动漫详情模态框
         function openAnimeModal(anime) {
-			const modalContent = document.getElementById('modal-content');
-			    if (anime.seasons.length === 1) {
-			        modalContent.classList.add('p-0'); // 单季移除内边距
-			    } else {
-			        modalContent.classList.remove('p-0'); // 多季保留内边距
-			    }
+            const modalContent = document.getElementById('modal-content');
+            if (anime.seasons.length === 1) {
+                modalContent.classList.add('p-0'); // 单季移除内边距
+            } else {
+                modalContent.classList.remove('p-0'); // 多季保留内边距
+            }
 
             // 检查季数
             if (anime.seasons.length === 1) {
             // 单季布局
-			const season = anime.seasons[0];
-			modalContent.innerHTML = `
-				<div class="flex flex-col md:flex-row h-full max-h-[80vh] md:max-h-none overflow-y-auto">
-					<!-- 左侧图片区域 - 无内边距 -->
-					<div class="w-full md:w-2/5 lg:w-1/3 h-64 md:h-auto relative flex-shrink-0">
-						<img src="${season.image || anime.image}" alt="${anime.title}" class="absolute inset-0 w-full h-full object-cover">
-					</div>
-					
-					<!-- 右侧内容区域 -->
-					<div class="w-full md:w-3/5 lg:w-2/3 p-6 overflow-y-auto">
-						<!-- 关闭按钮放在右上角 -->
-						<button id="close-modal-inner" class="absolute top-4 right-4 bg-white/80 backdrop-blur-sm text-gray-600 w-8 h-8 rounded-full flex items-center justify-center z-10 hover:bg-white transition-colors">
-							<i class="fa fa-times"></i>
-						</button>
-						
-						<h2 class="text-xl md:text-2xl font-bold mb-2 pr-6">${anime.title}</h2>
-						
-						<div class="flex flex-wrap gap-2 mb-4">
-							${anime.tags.map(tag => `
-								<span class="bg-accent text-dark text-xs px-3 py-1 rounded-full">${tag}</span>
-							`).join('')}
-						</div>
-						
-						<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 text-sm">
-							<div class="bg-gray-50 p-3 rounded-lg">
-								<p class="text-gray-500">状态</p>
-								<p class="font-medium">${season.status}</p>
-							</div>
-							<div class="bg-gray-50 p-3 rounded-lg">
-								<p class="text-gray-500">评分</p>
-								<p class="font-medium flex items-center">
-									${generateStarRating(season.star)}
-								</p>
-							</div>
-							<div class="bg-gray-50 p-3 rounded-lg">
-								<p class="text-gray-500">集数</p>
-								<p class="font-medium">${season.episodes}</p>
-							</div>
-							<div class="bg-gray-50 p-3 rounded-lg">
-								<p class="text-gray-500">播出年份</p>
-								<p class="font-medium">${season.airing}</p>
-							</div>
-							<div class="bg-gray-50 p-3 rounded-lg col-span-2 sm:col-span-1">
-								<p class="text-gray-500">导演</p>
-								<p class="font-medium">${anime.director}</p>
-							</div>
-						</div>
-						
-						<div>
-							<h3 class="text-base font-bold mb-2 flex items-center">
-								<i class="fa fa-info-circle text-primary mr-2"></i> 剧情简介
-							</h3>
-							<p class="text-gray-700 leading-relaxed text-sm md:text-base">${season.description || anime.description}</p>
-						</div>
-					</div>
-				</div>
-			`;
-			
-			// 添加内部关闭按钮事件
-			document.getElementById('close-modal-inner').addEventListener('click', closeAnimeModal);
+            const season = anime.seasons[0];
+            modalContent.innerHTML = `
+                <div class="flex flex-col md:flex-row h-full max-h-[80vh] md:max-h-none overflow-y-auto">
+                    <!-- 左侧图片区域 - 无内边距 -->
+                    <div class="w-full md:w-2/5 lg:w-1/3 h-64 md:h-auto relative flex-shrink-0 image-container image-loading">
+                        <img src="${season.image || anime.image}" alt="${anime.title}" 
+                             class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-300 image-viewer-zoom" 
+                             data-viewable="true"
+                             onload="this.classList.remove('opacity-0'); this.parentElement.classList.remove('image-loading')">
+                    </div>
+                    
+                    <!-- 右侧内容区域 -->
+                    <div class="w-full md:w-3/5 lg:w-2/3 p-6 overflow-y-auto">
+                        <!-- 关闭按钮放在右上角 -->
+                        <button id="close-modal-inner" class="absolute top-4 right-4 bg-white/80 backdrop-blur-sm text-gray-600 w-8 h-8 rounded-full flex items-center justify-center z-10 hover:bg-white transition-colors">
+                            <i class="fa fa-times"></i>
+                        </button>
+                        
+                        <h2 class="text-xl md:text-2xl font-bold mb-2 pr-6">${anime.title}</h2>
+                        
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            ${anime.tags.map(tag => `
+                                <span class="bg-accent text-dark text-xs px-3 py-1 rounded-full">${tag}</span>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 text-sm">
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-gray-500">状态</p>
+                                <p class="font-medium">${season.status}</p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-gray-500">评分</p>
+                                <p class="font-medium flex items-center">
+                                    ${generateStarRating(season.star)}
+                                </p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-gray-500">集数</p>
+                                <p class="font-medium">${season.episodes}</p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-gray-500">播出年份</p>
+                                <p class="font-medium">${season.airing}</p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg col-span-2 sm:col-span-1">
+                                <p class="text-gray-500">导演</p>
+                                <p class="font-medium">${anime.director}</p>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-base font-bold mb-2 flex items-center">
+                                <i class="fa fa-info-circle text-primary mr-2"></i> 剧情简介
+                            </h3>
+                        <div class="hidden md:block synopsis-container">
+                            <p class="text-gray-700 leading-relaxed text-sm md:text-base">${season.description || anime.description}</p>
+                        </div>
+                        <div class="md:hidden">
+                            <p class="text-gray-700 leading-relaxed text-sm md:text-base">${season.description || anime.description}</p>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // 添加内部关闭按钮事件
+            document.getElementById('close-modal-inner').addEventListener('click', closeAnimeModal);
             } else {
                 // 多季布局
                 let currentSeason = anime.seasons[0];
@@ -479,12 +670,16 @@
                 modalContent.innerHTML = `
                     <div class="space-y-3">
                         <!-- 顶部标题和基本信息 -->
-						<button id="close-modal-inner" class="absolute top-4 right-4 bg-white/80 backdrop-blur-sm text-gray-600 w-8 h-8 rounded-full flex items-center justify-center z-10 hover:bg-white transition-colors">
-							<i class="fa fa-times"></i>
-						</button>
+                        <button id="close-modal-inner" class="absolute top-4 right-4 bg-white/80 backdrop-blur-sm text-gray-600 w-8 h-8 rounded-full flex items-center justify-center z-10 hover:bg-white transition-colors">
+                            <i class="fa fa-times"></i>
+                        </button>
                         <div class="flex flex-col md:flex-row gap-6">
-                            <img id="modal-season-image" src="${currentSeason.image || anime.image}" alt="${anime.title}" 
-                                 class="w-full md:w-64 h-80 object-cover rounded-lg shadow-md">
+                            <div class="image-container image-loading">
+                                <img id="modal-season-image" src="${currentSeason.image || anime.image}" alt="${anime.title}" 
+                                     class="w-full md:w-64 h-80 object-cover rounded-lg shadow-md opacity-0 transition-opacity duration-300 image-viewer-zoom" 
+                                     data-viewable="true"
+                                     onload="this.classList.remove('opacity-0'); this.parentElement.classList.remove('image-loading')">
+                            </div>
                             
                             <div class="flex-1">
                                 <h2 class="text-2xl font-bold mb-2">${anime.title}</h2>
@@ -512,7 +707,8 @@
                                         ${anime.seasons.map(season => {
                                             let btnClass = 'bg-gray-100 text-gray-700';
                                             if (season.status === '已看完') btnClass = 'bg-green-100 text-green-700';
-                                            else if (season.status === '正在看') btnClass = 'bg-blue-100 text-blue-700';
+                                            else if (season.status === '部分观看') btnClass = 'bg-blue-100 text-blue-700';
+                                            else if (season.status === '未看') btnClass = 'bg-yellow-100 text-yellow-700';
                                             
                                             return `
                                                 <button class="season-btn px-4 py-2 rounded-lg text-sm font-medium transition-all ${btnClass} hover:shadow-sm"
@@ -538,16 +734,16 @@
                                         <div class="flex flex-col">
                                             <span class="text-gray-500 text-sm">状态</span>
                                             <span class="font-medium">
-                                                <span class="text-sm px-2 py-0.5 rounded-full ${currentSeason.status === '已看完' ? 'bg-green-100 text-green-800' : currentSeason.status === '正在看' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">
+                                                <span class="text-sm px-2 py-0.5 rounded-full ${currentSeason.status === '已看完' ? 'bg-green-100 text-green-800' : currentSeason.status === '部分观看' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">
                                                     ${currentSeason.status}
                                                 </span>
                                             </span>
                                         </div>
-										<div class="flex flex-col">
-										    <span class="text-gray-500 text-sm">评分</span>
-										    <span class="font-medium">${generateStarRating(currentSeason.star)}</span>
-										</div>
-										
+                                        <div class="flex flex-col">
+                                            <span class="text-gray-500 text-sm">评分</span>
+                                            <span class="font-medium">${generateStarRating(currentSeason.star)}</span>
+                                        </div>
+                                        
                                     </div>
                                 </div>
                             </div>
@@ -556,7 +752,12 @@
                         <!-- 剧情简介 -->
                         <div>
                             <h3 class="text-lg font-bold mb-3">剧情简介</h3>
-                            <p id="modal-season-description" class="text-gray-700 leading-relaxed">${currentSeason.description || anime.description}</p>
+                            <div class="hidden md:block synopsis-container">
+                                <p id="modal-season-description" class="text-gray-700 leading-relaxed">${currentSeason.description || anime.description}</p>
+                            </div>
+                            <div class="md:hidden">
+                                <p id="modal-season-description" class="text-gray-700 leading-relaxed">${currentSeason.description || anime.description}</p>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -593,16 +794,31 @@
                             <div class="flex flex-col">
                                 <span class="text-gray-500 text-sm">状态</span>
                                 <span class="font-medium">
-                                    <span class="text-sm px-2 py-0.5 rounded-full ${selectedSeason.status === '已看完' ? 'bg-green-100 text-green-800' : selectedSeason.status === '正在看' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">
+                                    <span class="text-sm px-2 py-0.5 rounded-full ${selectedSeason.status === '已看完' ? 'bg-green-100 text-green-800' : selectedSeason.status === '部分观看' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">
                                         ${selectedSeason.status}
                                     </span>
                                 </span>
                             </div>
-							<div class="flex flex-col">
-							    <span class="text-gray-500 text-sm">评分</span>
-							    <span class="font-medium">${generateStarRating(selectedSeason.star)}</span>
-							</div>
+                            <div class="flex flex-col">
+                                <span class="text-gray-500 text-sm">评分</span>
+                                <span class="font-medium">${generateStarRating(selectedSeason.star)}</span>
+                            </div>
                         `;
+                            
+                        // 更新季详情和剧情简介
+                        const desktopDesc = document.querySelector('.synopsis-container #modal-season-description');
+                        const mobileDesc = document.querySelector('.md\\:hidden #modal-season-description');
+                        
+                        if (desktopDesc) {
+                            desktopDesc.innerHTML = selectedSeason.description || anime.description;
+                        }
+                        if (mobileDesc) {
+                            mobileDesc.innerHTML = selectedSeason.description || anime.description;
+                        }
+						
+						const img = document.getElementById('modal-season-image');
+						img.classList.add('image-viewer-zoom');
+						img.setAttribute('data-viewable', 'true');
                     });
                 });
                 
@@ -610,7 +826,7 @@
                 document.querySelector('.season-btn')?.classList.add('bg-primary/10', 'ring-2', 'ring-primary/50');
             }
             // 绑定关闭按钮事件
-    document.getElementById('close-modal-inner')?.addEventListener('click', closeAnimeModal);
+            document.getElementById('close-modal-inner')?.addEventListener('click', closeAnimeModal);
             // 显示模态框
             animeModal.classList.remove('opacity-0', 'pointer-events-none');
             setTimeout(() => {
@@ -631,6 +847,18 @@
             }, 300);
         }
         
+		// 图片查看器相关函数
+		function openImageViewer(src) {
+		    viewerImage.src = src;
+		    imageViewer.classList.remove('opacity-0', 'pointer-events-none');
+		    document.body.style.overflow = 'hidden';
+		}
+		
+		function closeImageViewerModal() {
+		    imageViewer.classList.add('opacity-0', 'pointer-events-none');
+		    document.body.style.overflow = '';
+		}
+		
         // 处理搜索
         function handleSearch() {
             searchQuery = searchInput.value.trim().toLowerCase();
