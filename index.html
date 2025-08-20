@@ -542,7 +542,7 @@
             
             // 计算总集数
             const totalEpisodes = anime.seasons.reduce((total, season) => {
-                return total + (season.episodes === '电影' ? 1 : parseInt(season.episodes || 0));
+                return total + (season.episodes === '剧场版' ? 1 : parseInt(season.episodes || 0));
             }, 0);
             
             card.innerHTML = `
@@ -555,9 +555,10 @@
                     <div class="absolute top-2 left-2 ${statusClass} text-white text-xs px-2 py-0.5 rounded-full shadow-sm">
                         ${anime.status}
                     </div>
-                    <!-- 显示总季数 -->
+                    <!-- 显示总季数或剧场版 -->
                     <div class="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full shadow-sm">
-                        共${anime.seasons.length}季
+                        ${anime.seasons.length > 1 ? `共${anime.seasons.length}季` : 
+                          (anime.seasons[0].episodes === '剧场版' ? '剧场版' : 'TV')}
                     </div>
                     <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-3">
                         <h3 class="text-white font-bold text-shadow line-clamp-1 text-sm">${anime.title}</h3>
