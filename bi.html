@@ -1,0 +1,1745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据BI - 数据可视化BI工具</title>
+  <!-- 引入外部资源 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  
+  <!-- 配置Tailwind -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#165DFF',
+            secondary: '#36CFC9',
+            accent: '#722ED1',
+            success: '#52C41A',
+            warning: '#FAAD14',
+            danger: '#FF4D4F',
+            dark: '#1D2129',
+            'dark-2': '#4E5969',
+            'light-1': '#F2F3F5',
+            'light-2': '#E5E6EB',
+            'light-3': '#C9CDD4'
+          },
+          fontFamily: {
+            inter: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  
+  <!-- 自定义工具类 -->
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .text-shadow {
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .transition-height {
+        transition: max-height 0.3s ease-in-out;
+      }
+    }
+  </style>
+  
+  <style>
+    /* 基础动画 */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-fadeIn {
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+    
+    .chart-container {
+      min-height: 300px;
+      transition: all 0.3s ease;
+    }
+    
+    .chart-container:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    /* 小型分布图表容器 */
+    .mini-chart-container {
+      height: 100px;
+      width: 100%;
+    }
+    
+    /* 文件拖放区域样式 */
+    .drop-area {
+      transition: all 0.3s ease;
+    }
+    
+    .drop-area.active {
+      background-color: rgba(22, 93, 255, 0.1);
+      border-color: #165DFF;
+    }
+    
+    /* 骨架屏动画 */
+    @keyframes shimmer {
+      0% { background-position: -1000px 0; }
+      100% { background-position: 1000px 0; }
+    }
+    
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 1000px 100%;
+      animation: shimmer 2s infinite linear;
+    }
+
+    /* 聚合设置区域动画 */
+    .aggregation-section {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+    
+    .aggregation-section.active {
+      max-height: 500px;
+      transition: max-height 0.5s ease-in;
+    }
+
+    /* 字段统计区域滚动 */
+    .fields-stats-container {
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+    
+    .fields-stats-container::-webkit-scrollbar {
+      height: 6px;
+    }
+    
+    .fields-stats-container::-webkit-scrollbar-thumb {
+      background-color: rgba(22, 93, 255, 0.5);
+      border-radius: 3px;
+    }
+  </style>
+</head>
+
+<body class="font-inter bg-gray-50 text-dark min-h-screen flex flex-col">
+  <!-- 顶部导航栏 -->
+  <header class="bg-white shadow-sm sticky top-0 z-50 transition-all duration-300" id="main-header">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <!-- 品牌标识 -->
+        <div class="flex items-center">
+          <div class="flex-shrink-0 flex items-center">
+            <i class="fa fa-bar-chart text-primary text-2xl mr-2"></i>
+            <span class="text-xl font-bold text-primary">数据BI</span>
+          </div>
+          <nav class="hidden md:ml-10 md:flex md:space-x-8">
+            <a href="#" class="text-primary border-b-2 border-primary px-1 pt-1 inline-flex items-center text-sm font-medium">
+              <i class="fa fa-dashboard mr-1"></i> 仪表盘
+            </a>
+          </nav>
+        </div>
+        
+        <!-- 右侧操作区 -->
+        <div class="flex items-center">
+          <!-- 主题切换 -->
+          <button type="button" id="theme-toggle" class="p-2 rounded-full text-dark-2 hover:bg-light-1 transition-colors">
+            <i class="fa fa-moon-o"></i>
+          </button>
+          
+          <!-- 用户菜单 -->
+          <div class="ml-4 relative">
+            <div>
+              <button type="button" class="flex items-center max-w-xs rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-primary" id="user-menu-button">
+                <a href="https://www.datazzh.top"><img class="h-8 w-8 rounded-full object-cover" src="http://www.datazzh.top/wp-content/uploads/2024/07/OIP-C.jpeg" alt=""></a>
+              
+			  </button>
+            </div>
+          </div>
+          
+          <!-- 移动端菜单按钮 -->
+          <div class="-mr-2 flex items-center md:hidden">
+            <button type="button" class="inline-flex items-center justify-center p-2 rounded-md text-dark-2 hover:text-primary hover:bg-light-1 focus:outline-none" id="mobile-menu-button">
+              <i class="fa fa-bars text-xl"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 移动端菜单 -->
+    <div class="hidden md:hidden animate-fadeIn" id="mobile-menu">
+      <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white">
+        <a href="#" class="bg-primary/10 text-primary block px-3 py-2 rounded-md text-base font-medium">
+          <i class="fa fa-dashboard mr-1"></i> 仪表盘
+        </a>
+        <a href="#" class="text-dark-2 hover:bg-light-1 hover:text-primary block px-3 py-2 rounded-md text-base font-medium">
+          <i class="fa fa-history mr-1"></i> 历史
+        </a>
+        <a href="#" class="text-dark-2 hover:bg-light-1 hover:text-primary block px-3 py-2 rounded-md text-base font-medium">
+          <i class="fa fa-cog mr-1"></i> 设置
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主内容区 -->
+  <main class="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- 页面标题 -->
+    <div class="mb-8 animate-fadeIn">
+      <h1 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-2">数据可视化报表</h1>
+      <p class="text-dark-2 max-w-3xl">上传CSV或JSON文件，查看每个字段的数据分布特征，支持数据聚合和多维度可视化分析。</p>
+    </div>
+    
+    <!-- 文件上传区域 -->
+    <section class="mb-10 animate-fadeIn" style="animation-delay: 0.1s">
+      <div class="bg-white rounded-xl shadow-sm p-6 border border-light-2">
+        <h2 class="text-xl font-semibold mb-4 flex items-center">
+          <i class="fa fa-upload text-primary mr-2"></i>
+          上传数据文件
+        </h2>
+        
+        <!-- 拖放区域 -->
+        <div id="drop-area" class="drop-area border-2 border-dashed border-light-2 rounded-lg p-8 text-center mb-6 cursor-pointer">
+          <i class="fa fa-file-text-o text-4xl text-light-3 mb-3"></i>
+          <p class="mb-2 text-dark">拖放CSV或JSON文件到此处，或</p>
+          <label class="inline-block bg-primary text-white px-4 py-2 rounded-md font-medium hover:bg-primary/90 transition-colors cursor-pointer">
+            <i class="fa fa-folder-open mr-1"></i> 选择文件
+            <input type="file" id="file-input" accept=".csv,.json" class="hidden">
+          </label>
+          <p class="mt-3 text-sm text-dark-2">支持格式: .csv, .json</p>
+        </div>
+        
+        <!-- 文件信息展示区 -->
+        <div id="file-info" class="hidden">
+          <div class="flex items-center p-3 bg-light-1 rounded-lg">
+            <i id="file-icon" class="fa fa-file-text-o text-primary mr-3 text-xl"></i>
+            <div class="flex-1 min-w-0">
+              <p id="file-name" class="text-sm font-medium text-dark truncate"></p>
+              <p id="file-size" class="text-xs text-dark-2"></p>
+            </div>
+            <button id="remove-file" class="text-dark-2 hover:text-danger p-2 transition-colors">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- 数据处理和报表区域 -->
+    <section id="report-section" class="hidden">
+      <!-- 数据筛选和图表控制 -->
+      <div class="bg-white rounded-xl shadow-sm p-6 border border-light-2 mb-6 animate-fadeIn">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-semibold mb-1 flex items-center">
+              <i class="fa fa-filter text-primary mr-2"></i>
+              数据筛选与聚合
+            </h2>
+            <p class="text-sm text-dark-2">选择要展示的数据列、聚合方式和图表类型</p>
+          </div>
+          
+          <!-- 聚合设置切换按钮 -->
+          <button id="toggle-aggregation" class="text-primary hover:text-primary/80 text-sm font-medium transition-colors flex items-center self-start md:self-end">
+            <i class="fa fa-calculator mr-1"></i> 
+            <span id="aggregation-toggle-text">显示聚合设置</span>
+            <i id="aggregation-toggle-icon" class="fa fa-chevron-down ml-1"></i>
+          </button>
+        </div>
+        
+        <!-- 基础筛选选项 -->
+        <div class="flex flex-wrap gap-3 my-6">
+          <!-- X轴选择 -->
+          <div class="w-full sm:w-auto">
+            <label for="x-axis" class="block text-sm font-medium text-dark-2 mb-1">X轴数据</label>
+            <select id="x-axis" class="block w-full sm:w-48 rounded-md border-light-2 border px-3 py-2 focus:ring-primary focus:border-primary">
+              <option value="">选择列...</option>
+            </select>
+          </div>
+          
+          <!-- Y轴选择 -->
+          <div class="w-full sm:w-auto">
+            <label for="y-axis" class="block text-sm font-medium text-dark-2 mb-1">Y轴数据</label>
+            <select id="y-axis" class="block w-full sm:w-48 rounded-md border-light-2 border px-3 py-2 focus:ring-primary focus:border-primary">
+              <option value="">选择列...</option>
+            </select>
+          </div>
+          
+          <!-- 图表类型选择 -->
+          <div class="w-full sm:w-auto">
+            <label for="chart-type" class="block text-sm font-medium text-dark-2 mb-1">图表类型</label>
+            <select id="chart-type" class="block w-full sm:w-48 rounded-md border-light-2 border px-3 py-2 focus:ring-primary focus:border-primary">
+              <option value="bar">柱状图</option>
+              <option value="line">折线图</option>
+              <option value="pie">饼图</option>
+              <option value="doughnut">环形图</option>
+              <option value="radar">雷达图</option>
+              <option value="polarArea">极坐标图</option>
+              <option value="scatter">散点图</option>
+            </select>
+          </div>
+          
+          <!-- 生成按钮 -->
+          <div class="w-full sm:w-auto flex items-end">
+            <button id="generate-chart" class="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center">
+              <i class="fa fa-refresh mr-2"></i> 生成图表
+            </button>
+          </div>
+        </div>
+        
+        <!-- 聚合设置区域 -->
+        <div id="aggregation-section" class="aggregation-section border-t border-light-2 pt-4">
+          <h3 class="font-semibold text-dark mb-3 flex items-center">
+            <i class="fa fa-cubes text-primary mr-2"></i>
+            数据聚合设置
+          </h3>
+          
+          <div class="flex flex-wrap gap-3">
+            <!-- 分组列选择 -->
+            <div class="w-full sm:w-auto">
+              <label for="group-by" class="block text-sm font-medium text-dark-2 mb-1">分组列</label>
+              <select id="group-by" class="block w-full sm:w-48 rounded-md border-light-2 border px-3 py-2 focus:ring-primary focus:border-primary">
+                <option value="">不分组</option>
+              </select>
+            </div>
+            
+            <!-- 聚合列选择 -->
+            <div class="w-full sm:w-auto">
+              <label for="aggregate-column" class="block text-sm font-medium text-dark-2 mb-1">聚合列</label>
+              <select id="aggregate-column" class="block w-full sm:w-48 rounded-md border-light-2 border px-3 py-2 focus:ring-primary focus:border-primary">
+                <option value="">选择列...</option>
+              </select>
+            </div>
+            
+            <!-- 聚合函数选择 -->
+            <div class="w-full sm:w-auto">
+              <label for="aggregate-function" class="block text-sm font-medium text-dark-2 mb-1">聚合函数</label>
+              <select id="aggregate-function" class="block w-full sm:w-48 rounded-md border-light-2 border px-3 py-2 focus:ring-primary focus:border-primary">
+                <option value="sum">求和 (Sum)</option>
+                <option value="avg">平均值 (Avg)</option>
+                <option value="count">计数 (Count)</option>
+                <option value="max">最大值 (Max)</option>
+                <option value="min">最小值 (Min)</option>
+              </select>
+            </div>
+            
+            <!-- 应用聚合按钮 -->
+            <div class="w-full sm:w-auto flex items-end">
+              <button id="apply-aggregation" class="w-full sm:w-auto bg-accent hover:bg-accent/90 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center">
+                <i class="fa fa-calculator mr-2"></i> 应用聚合
+              </button>
+            </div>
+          </div>
+          
+          <!-- 聚合结果预览 -->
+          <div class="mt-4 p-3 bg-light-1 rounded-lg text-sm" id="aggregation-info">
+            <span class="text-dark-2">当前未应用聚合。选择分组列和聚合方式进行数据聚合。</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 字段数据概览区域 -->
+      <div class="mb-8 animate-fadeIn" style="animation-delay: 0.2s">
+        <div class="bg-white rounded-xl shadow-sm border border-light-2 overflow-hidden">
+          <div class="p-4 border-b border-light-2">
+            <h3 class="font-semibold text-dark flex items-center">
+              <i class="fa fa-info-circle text-primary mr-2"></i>
+              字段数据概览
+            </h3>
+            <p class="text-sm text-dark-2 mt-1">每个字段的统计信息和分布特征</p>
+          </div>
+          
+          <div class="p-4">
+            <div class="fields-stats-container">
+              <div id="fields-stats" class="flex gap-4 pb-2 min-w-max">
+                <!-- 字段统计卡片将在这里动态生成 -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 图表展示区域 -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- 主图表 -->
+        <div class="lg:col-span-2">
+          <div class="bg-white rounded-xl shadow-sm border border-light-2 overflow-hidden animate-fadeIn" style="animation-delay: 0.3s">
+            <div class="p-4 border-b border-light-2 flex justify-between items-center">
+              <h3 class="font-semibold text-dark flex items-center">
+                <i class="fa fa-line-chart text-primary mr-2"></i>
+                主要数据图表
+                <span id="chart-aggregation-indicator" class="ml-2 text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full hidden">
+                  已聚合
+                </span>
+              </h3>
+              <div class="flex gap-2">
+                <button class="chart-action p-2 text-dark-2 hover:text-primary hover:bg-light-1 rounded transition-colors" data-action="download" title="下载图表">
+                  <i class="fa fa-download"></i>
+                </button>
+                <button class="chart-action p-2 text-dark-2 hover:text-primary hover:bg-light-1 rounded transition-colors" data-action="expand" title="全屏查看">
+                  <i class="fa fa-expand"></i>
+                </button>
+              </div>
+            </div>
+            <div class="p-6">
+              <div class="chart-container">
+                <canvas id="main-chart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 聚合结果图表 (如果已应用聚合) -->
+        <div class="bg-white rounded-xl shadow-sm border border-light-2 overflow-hidden animate-fadeIn" style="animation-delay: 0.4s" id="aggregation-chart-container">
+          <div class="p-4 border-b border-light-2 flex justify-between items-center">
+            <h3 class="font-semibold text-dark flex items-center">
+              <i class="fa fa-pie-chart text-accent mr-2"></i>
+              聚合结果分布
+            </h3>
+            <div class="flex gap-2">
+              <button class="chart-action p-2 text-dark-2 hover:text-primary hover:bg-light-1 rounded transition-colors" data-action="download" title="下载图表">
+                <i class="fa fa-download"></i>
+              </button>
+            </div>
+          </div>
+          <div class="p-6">
+            <div class="chart-container">
+              <canvas id="aggregation-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 数据表格 -->
+      <div class="bg-white rounded-xl shadow-sm border border-light-2 overflow-hidden animate-fadeIn" style="animation-delay: 0.5s">
+        <div class="p-4 border-b border-light-2 flex justify-between items-center">
+          <h3 class="font-semibold text-dark flex items-center">
+            <i class="fa fa-database text-primary mr-2"></i>
+            数据
+            <span id="table-aggregation-indicator" class="ml-2 text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full hidden">
+              已聚合
+            </span>
+          </h3>
+          <div>
+            <button id="show-all-data" class="text-primary hover:text-primary/80 text-sm font-medium transition-colors">
+              查看全部 <i class="fa fa-chevron-down ml-1"></i>
+            </button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table id="data-table" class="min-w-full divide-y divide-light-2">
+            <thead class="bg-light-1">
+              <tr id="table-header">
+                <!-- 表头将动态生成 -->
+              </tr>
+            </thead>
+            <tbody id="table-body" class="bg-white divide-y divide-light-2">
+              <!-- 表格内容将动态生成 -->
+            </tbody>
+          </table>
+        </div>
+        <div class="p-4 border-t border-light-2 text-sm text-dark-2">
+          <span id="data-count">显示 0 条数据中的 0-0 条</span>
+        </div>
+      </div>
+    </section>
+    
+    <!-- 空状态提示 -->
+    <section id="empty-state" class="animate-fadeIn">
+      <div class="bg-white rounded-xl shadow-sm p-8 border border-light-2 text-center">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+          <i class="fa fa-file-text-o text-2xl text-primary"></i>
+        </div>
+        <h3 class="text-lg font-medium text-dark mb-2">还没有上传数据文件</h3>
+        <p class="text-dark-2 max-w-md mx-auto mb-6">上传CSV或JSON文件开始数据分析，系统将展示每个字段的数据分布特征</p>
+        <button id="browse-files-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+          <i class="fa fa-folder-open mr-2"></i> 浏览文件
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="bg-white border-t border-light-2 py-6">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row justify-between items-center">
+        <div class="flex items-center mb-4 md:mb-0">
+          <i class="fa fa-bar-chart text-primary text-xl mr-2"></i>
+          <span class="text-lg font-bold text-primary">数据BI</span>
+          <span class="ml-2 text-dark-2 text-sm">©数据可视化工具</span>
+        </div>
+        <div class="flex space-x-6">
+          <!-- <a href="#" class="text-dark-2 hover:text-primary transition-colors">
+            <i class="fa fa-question-circle"></i> 帮助
+          </a>
+          <a href="#" class="text-dark-2 hover:text-primary transition-colors">
+            <i class="fa fa-file-text-o"></i> 文档
+          </a>
+          <a href="#" class="text-dark-2 hover:text-primary transition-colors">
+            <i class="fa fa-envelope-o"></i> 联系我们
+          </a> -->
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 全屏图表模态框 -->
+  <div id="chart-modal" class="fixed inset-0 bg-black/70 z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+      <div class="p-4 border-b border-light-2 flex justify-between items-center">
+        <h3 class="font-semibold text-dark" id="modal-title">图表预览</h3>
+        <button id="close-modal" class="text-dark-2 hover:text-danger p-2 transition-colors">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <div class="flex-1 p-6 overflow-auto">
+        <canvas id="modal-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- 通知提示组件 -->
+  <div id="toast" class="fixed bottom-4 right-4 bg-dark text-white px-4 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center z-50">
+    <i id="toast-icon" class="fa fa-info-circle mr-2"></i>
+    <span id="toast-message">通知消息</span>
+  </div>
+
+  <script>
+    // 全局变量
+    let fileData = null;
+    let parsedData = null;
+    let aggregatedData = null;
+    let fieldStats = {}; // 存储每个字段的统计信息
+    let fieldCharts = {}; // 存储每个字段的图表实例
+    let aggregationSettings = {
+      groupBy: '',
+      aggregateColumn: '',
+      aggregateFunction: 'sum'
+    };
+    let mainChart = null;
+    let aggregationChart = null;
+    let modalChart = null;
+    let isDarkMode = false;
+    let isAggregationActive = false;
+    
+    // DOM 元素
+    const dropArea = document.getElementById('drop-area');
+    const fileInput = document.getElementById('file-input');
+    const fileInfo = document.getElementById('file-info');
+    const fileName = document.getElementById('file-name');
+    const fileSize = document.getElementById('file-size');
+    const fileIcon = document.getElementById('file-icon');
+    const removeFile = document.getElementById('remove-file');
+    const reportSection = document.getElementById('report-section');
+    const emptyState = document.getElementById('empty-state');
+    const xAxisSelect = document.getElementById('x-axis');
+    const yAxisSelect = document.getElementById('y-axis');
+    const chartTypeSelect = document.getElementById('chart-type');
+    const generateChartBtn = document.getElementById('generate-chart');
+    const fieldsStatsContainer = document.getElementById('fields-stats');
+    const tableHeader = document.getElementById('table-header');
+    const tableBody = document.getElementById('table-body');
+    const dataCount = document.getElementById('data-count');
+    const showAllDataBtn = document.getElementById('show-all-data');
+    const browseFilesBtn = document.getElementById('browse-files-btn');
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const themeToggle = document.getElementById('theme-toggle');
+    const chartModal = document.getElementById('chart-modal');
+    const closeModal = document.getElementById('close-modal');
+    const modalChartCanvas = document.getElementById('modal-chart');
+    const modalTitle = document.getElementById('modal-title');
+    const mainHeader = document.getElementById('main-header');
+    const toast = document.getElementById('toast');
+    const toastIcon = document.getElementById('toast-icon');
+    const toastMessage = document.getElementById('toast-message');
+    const chartActions = document.querySelectorAll('.chart-action');
+    const toggleAggregationBtn = document.getElementById('toggle-aggregation');
+    const aggregationSection = document.getElementById('aggregation-section');
+    const aggregationToggleText = document.getElementById('aggregation-toggle-text');
+    const aggregationToggleIcon = document.getElementById('aggregation-toggle-icon');
+    const groupBySelect = document.getElementById('group-by');
+    const aggregateColumnSelect = document.getElementById('aggregate-column');
+    const aggregateFunctionSelect = document.getElementById('aggregate-function');
+    const applyAggregationBtn = document.getElementById('apply-aggregation');
+    const aggregationInfo = document.getElementById('aggregation-info');
+    const aggregationChartContainer = document.getElementById('aggregation-chart-container');
+    const chartAggregationIndicator = document.getElementById('chart-aggregation-indicator');
+    const tableAggregationIndicator = document.getElementById('table-aggregation-indicator');
+    
+    // 显示通知
+    function showToast(message, type = 'info') {
+      toastMessage.textContent = message;
+      
+      // 设置图标和颜色
+      toastIcon.className = '';
+      switch(type) {
+        case 'success':
+          toastIcon.className = 'fa fa-check-circle mr-2';
+          toast.classList.add('bg-success');
+          toast.classList.remove('bg-danger', 'bg-warning', 'bg-primary');
+          break;
+        case 'error':
+          toastIcon.className = 'fa fa-exclamation-circle mr-2';
+          toast.classList.add('bg-danger');
+          toast.classList.remove('bg-success', 'bg-warning', 'bg-primary');
+          break;
+        case 'warning':
+          toastIcon.className = 'fa fa-exclamation-triangle mr-2';
+          toast.classList.add('bg-warning');
+          toast.classList.remove('bg-success', 'bg-danger', 'bg-primary');
+          break;
+        default:
+          toastIcon.className = 'fa fa-info-circle mr-2';
+          toast.classList.add('bg-primary');
+          toast.classList.remove('bg-success', 'bg-danger', 'bg-warning');
+      }
+      
+      // 显示通知
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-1');
+      
+      // 3秒后隐藏
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-1');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+    
+    // 处理文件拖放
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropArea.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight() {
+      dropArea.classList.add('active');
+    }
+    
+    function unhighlight() {
+      dropArea.classList.remove('active');
+    }
+    
+    dropArea.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+      const dt = e.dataTransfer;
+      const file = dt.files[0];
+      
+      if (file) {
+        handleFile(file);
+      }
+    }
+    
+    // 文件选择处理
+    fileInput.addEventListener('change', function() {
+      if (this.files.length > 0) {
+        handleFile(this.files[0]);
+      }
+    });
+    
+    browseFilesBtn.addEventListener('click', function() {
+      fileInput.click();
+    });
+    
+    // 处理文件
+    function handleFile(file) {
+      // 验证文件类型
+      if (!file.name.endsWith('.csv') && !file.name.endsWith('.json')) {
+        showToast('请上传CSV或JSON格式的文件', 'error');
+        return;
+      }
+      
+      // 显示文件信息
+      showFileInfo(file);
+      
+      // 读取文件内容
+      const reader = new FileReader();
+      
+      reader.onload = function(e) {
+        try {
+          fileData = e.target.result;
+          
+          if (file.name.endsWith('.csv')) {
+            // 解析CSV
+            Papa.parse(fileData, {
+              header: true,
+              dynamicTyping: true,
+              complete: function(results) {
+                parsedData = results.data;
+                resetAggregation();
+                processData();
+                showToast('CSV文件解析成功', 'success');
+              },
+              error: function(error) {
+                showToast('CSV文件解析失败: ' + error.message, 'error');
+                console.error('CSV解析错误:', error);
+              }
+            });
+          } else if (file.name.endsWith('.json')) {
+            // 解析JSON
+            parsedData = JSON.parse(fileData);
+            if (Array.isArray(parsedData)) {
+              resetAggregation();
+              processData();
+              showToast('JSON文件解析成功', 'success');
+            } else {
+              showToast('JSON文件格式不正确，应包含数组', 'error');
+            }
+          }
+        } catch (error) {
+          showToast('文件解析错误: ' + error.message, 'error');
+          console.error('文件解析错误:', error);
+        }
+      };
+      
+      reader.onerror = function() {
+        showToast('文件读取错误', 'error');
+      };
+      
+      if (file.name.endsWith('.csv')) {
+        reader.readAsText(file);
+      } else {
+        reader.readAsText(file);
+      }
+    }
+    
+    // 显示文件信息
+    function showFileInfo(file) {
+      fileName.textContent = file.name;
+      fileSize.textContent = formatFileSize(file.size);
+      
+      if (file.name.endsWith('.csv')) {
+        fileIcon.className = 'fa fa-file-text-o text-primary mr-3 text-xl';
+      } else {
+        fileIcon.className = 'fa fa-file-code-o text-primary mr-3 text-xl';
+      }
+      
+      fileInfo.classList.remove('hidden');
+    }
+    
+    // 格式化文件大小
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // 移除文件
+    removeFile.addEventListener('click', function() {
+      fileInput.value = '';
+      fileInfo.classList.add('hidden');
+      fileData = null;
+      parsedData = null;
+      aggregatedData = null;
+      fieldStats = {};
+      
+      // 销毁所有字段图表
+      Object.values(fieldCharts).forEach(chart => chart.destroy());
+      fieldCharts = {};
+      
+      resetAggregation();
+      reportSection.classList.add('hidden');
+      emptyState.classList.remove('hidden');
+      
+      // 清除图表
+      if (mainChart) {
+        mainChart.destroy();
+        mainChart = null;
+      }
+      
+      if (aggregationChart) {
+        aggregationChart.destroy();
+        aggregationChart = null;
+      }
+      
+      showToast('文件已移除', 'info');
+    });
+    
+    // 重置聚合设置
+    function resetAggregation() {
+      aggregationSettings = {
+        groupBy: '',
+        aggregateColumn: '',
+        aggregateFunction: 'sum'
+      };
+      isAggregationActive = false;
+      
+      if (groupBySelect) groupBySelect.value = '';
+      if (aggregateColumnSelect) aggregateColumnSelect.value = '';
+      if (aggregateFunctionSelect) aggregateFunctionSelect.value = 'sum';
+      
+      updateAggregationInfo();
+      chartAggregationIndicator.classList.add('hidden');
+      tableAggregationIndicator.classList.add('hidden');
+      aggregationChartContainer.classList.add('hidden');
+    }
+    
+    // 处理解析后的数据
+    function processData() {
+      if (!parsedData || parsedData.length === 0) {
+        showToast('没有可处理的数据', 'warning');
+        return;
+      }
+      
+      // 显示报表区域，隐藏空状态
+      reportSection.classList.remove('hidden');
+      emptyState.classList.add('hidden');
+      
+      // 获取数据列
+      const columns = Object.keys(parsedData[0]);
+      
+      // 填充所有选择框选项
+      populateSelectOptions(xAxisSelect, columns);
+      populateSelectOptions(yAxisSelect, columns);
+      populateSelectOptions(groupBySelect, columns);
+      populateSelectOptions(aggregateColumnSelect, columns);
+      
+      // 默认选择前两列
+      if (columns.length >= 1) {
+        xAxisSelect.value = columns[0];
+      }
+      if (columns.length >= 2) {
+        yAxisSelect.value = columns[1];
+        aggregateColumnSelect.value = columns[1];
+      }
+      
+      // 计算每个字段的统计信息
+      calculateFieldStats(columns);
+      
+      // 生成每个字段的数据概览卡片
+      generateFieldStatsCards(columns);
+      
+      // 生成图表
+      generateCharts();
+      
+      // 生成数据表格
+      generateDataTable(false);
+    }
+    
+    // 计算每个字段的统计信息
+    function calculateFieldStats(columns) {
+      fieldStats = {};
+      
+      columns.forEach(column => {
+        // 提取该字段的所有值
+        const values = parsedData.map(item => item[column]);
+        
+        // 确定字段类型
+        let fieldType = 'string';
+        if (values.every(v => typeof v === 'number' && !isNaN(v))) {
+          fieldType = 'number';
+        } else if (values.every(v => typeof v === 'boolean')) {
+          fieldType = 'boolean';
+        } else if (values.every(v => !isNaN(Date.parse(v)))) {
+          fieldType = 'date';
+        }
+        
+        // 计算基本统计信息
+        const stats = {
+          type: fieldType,
+          count: values.length,
+          uniqueCount: new Set(values).size,
+          missingCount: values.filter(v => v === null || v === undefined || v === '').length
+        };
+        
+        // 数值型字段的额外统计
+        if (fieldType === 'number') {
+          const numericValues = values.filter(v => typeof v === 'number' && !isNaN(v));
+          const sum = numericValues.reduce((acc, val) => acc + val, 0);
+          const mean = sum / numericValues.length;
+          const sorted = [...numericValues].sort((a, b) => a - b);
+          const median = sorted.length % 2 === 0 
+            ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2 
+            : sorted[Math.floor(sorted.length / 2)];
+          
+          stats.sum = sum;
+          stats.mean = mean;
+          stats.median = median;
+          stats.min = Math.min(...numericValues);
+          stats.max = Math.max(...numericValues);
+          stats.range = stats.max - stats.min;
+          stats.values = numericValues; // 存储数值用于绘制分布图表
+        } 
+        // 分类字段的额外统计
+        else if (fieldType === 'string' || fieldType === 'boolean' || fieldType === 'date') {
+          // 计算每个类别的出现次数
+          const valueCounts = {};
+          values.forEach(v => {
+            const key = v === null || v === undefined ? 'null' : String(v);
+            valueCounts[key] = (valueCounts[key] || 0) + 1;
+          });
+          
+          stats.valueCounts = valueCounts;
+          // 获取最常见的值
+          const sortedValues = Object.entries(valueCounts).sort((a, b) => b[1] - a[1]);
+          stats.mostCommon = sortedValues.length > 0 ? sortedValues[0][0] : null;
+          stats.mostCommonCount = sortedValues.length > 0 ? sortedValues[0][1] : 0;
+        }
+        
+        fieldStats[column] = stats;
+      });
+    }
+    
+    // 生成每个字段的数据概览卡片
+    function generateFieldStatsCards(columns) {
+      fieldsStatsContainer.innerHTML = '';
+      
+      // 销毁现有图表
+      Object.values(fieldCharts).forEach(chart => chart.destroy());
+      fieldCharts = {};
+      
+      columns.forEach((column, index) => {
+        const stats = fieldStats[column];
+        const card = document.createElement('div');
+        card.className = 'bg-white border border-light-2 rounded-xl shadow-sm w-72 flex-shrink-0 animate-fadeIn';
+        card.style.animationDelay = `${0.1 + index * 0.1}s`;
+        
+        // 根据字段类型选择图标
+        let fieldIcon = 'fa-font'; // 默认文本类型
+        if (stats.type === 'number') fieldIcon = 'fa-hashtag';
+        else if (stats.type === 'boolean') fieldIcon = 'fa-check-square-o';
+        else if (stats.type === 'date') fieldIcon = 'fa-calendar';
+        
+        // 构建卡片内容
+        card.innerHTML = `
+          <div class="p-4 border-b border-light-2">
+            <h4 class="font-medium text-dark flex items-center">
+              <i class="fa ${fieldIcon} text-primary mr-2"></i>
+              ${column}
+            </h4>
+            <p class="text-xs text-dark-2 mt-1">
+              类型: ${getFieldTypeName(stats.type)}
+            </p>
+          </div>
+          <div class="p-4">
+            <div class="mb-3">
+              <canvas id="chart-${column}" class="mini-chart-container"></canvas>
+            </div>
+            <div class="space-y-1 text-sm">
+              <div class="flex justify-between">
+                <span class="text-dark-2">记录数:</span>
+                <span class="font-medium">${stats.count}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-dark-2">唯一值:</span>
+                <span class="font-medium">${stats.uniqueCount}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-dark-2">缺失值:</span>
+                <span class="font-medium ${stats.missingCount > 0 ? 'text-danger' : ''}">${stats.missingCount}</span>
+              </div>
+              ${stats.type === 'number' ? `
+                <div class="flex justify-between">
+                  <span class="text-dark-2">平均值:</span>
+                  <span class="font-medium">${stats.mean.toFixed(2)}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-dark-2">范围:</span>
+                  <span class="font-medium">${stats.min.toFixed(2)} - ${stats.max.toFixed(2)}</span>
+                </div>
+              ` : `
+                <div class="flex justify-between">
+                  <span class="text-dark-2">最常见:</span>
+                  <span class="font-medium truncate max-w-[100px] text-right">${stats.mostCommon}</span>
+                </div>
+              `}
+            </div>
+          </div>
+        `;
+        
+        fieldsStatsContainer.appendChild(card);
+        
+        // 创建字段分布图表
+        createFieldDistributionChart(column, stats);
+      });
+    }
+    
+    // 创建字段分布图表
+    function createFieldDistributionChart(column, stats) {
+      const ctx = document.getElementById(`chart-${column}`).getContext('2d');
+      
+      let chartData, chartType, chartOptions;
+      
+      // 数值型字段使用直方图
+      if (stats.type === 'number') {
+        chartType = 'bar';
+        
+        // 生成直方图数据（使用10个区间）
+        const bins = 10;
+        const binWidth = stats.range / bins;
+        const histogramData = new Array(bins).fill(0);
+        
+        stats.values.forEach(value => {
+          const binIndex = Math.min(Math.floor((value - stats.min) / binWidth), bins - 1);
+          histogramData[binIndex]++;
+        });
+        
+        // 生成X轴标签
+        const labels = [];
+        for (let i = 0; i < bins; i++) {
+          const start = stats.min + i * binWidth;
+          const end = start + binWidth;
+          labels.push(`${start.toFixed(1)} - ${end.toFixed(1)}`);
+        }
+        
+        chartData = {
+          labels: labels,
+          datasets: [{
+            label: '分布',
+            data: histogramData,
+            backgroundColor: 'rgba(22, 93, 255, 0.7)',
+            borderColor: 'rgba(22, 93, 255, 1)',
+            borderWidth: 1,
+            barPercentage: 0.8
+          }]
+        };
+        
+        chartOptions = {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              enabled: true
+            }
+          },
+          scales: {
+            x: {
+              display: false
+            },
+            y: {
+              display: false,
+              beginAtZero: true
+            }
+          }
+        };
+      } 
+      // 分类字段使用饼图（只显示前5个类别，其余合并为"其他"）
+      else {
+        chartType = 'pie';
+        
+        // 排序并获取前5个类别
+        let sortedValues = Object.entries(stats.valueCounts)
+          .sort((a, b) => b[1] - a[1]);
+        
+        // 如果类别太多，合并为"其他"
+        if (sortedValues.length > 5) {
+          const topValues = sortedValues.slice(0, 4);
+          const otherCount = sortedValues.slice(4).reduce((sum, [_, count]) => sum + count, 0);
+          sortedValues = [...topValues, ['其他', otherCount]];
+        }
+        
+        chartData = {
+          labels: sortedValues.map(([value, _]) => value),
+          datasets: [{
+            data: sortedValues.map(([_, count]) => count),
+            backgroundColor: getChartColors(sortedValues.length),
+            borderColor: getChartColors(sortedValues.length, true),
+            borderWidth: 1
+          }]
+        };
+        
+        chartOptions = {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              enabled: true
+            }
+          }
+        };
+      }
+      
+      // 创建图表并保存实例
+      fieldCharts[column] = new Chart(ctx, {
+        type: chartType,
+        data: chartData,
+        options: chartOptions
+      });
+    }
+    
+    // 获取字段类型的显示名称
+    function getFieldTypeName(type) {
+      const typeNames = {
+        'string': '文本',
+        'number': '数值',
+        'boolean': '布尔',
+        'date': '日期'
+      };
+      return typeNames[type] || type;
+    }
+    
+    // 填充选择框选项
+    function populateSelectOptions(selectElement, options) {
+      // 保存当前值
+      const currentValue = selectElement.value;
+      
+      // 清空现有选项（保留第一个"不分组"选项，如果是groupBySelect）
+      if (selectElement.id === 'group-by') {
+        selectElement.innerHTML = '<option value="">不分组</option>';
+      } else {
+        selectElement.innerHTML = '<option value="">选择列...</option>';
+      }
+      
+      // 添加新选项
+      options.forEach(option => {
+        const optionElement = document.createElement('option');
+        optionElement.value = option;
+        optionElement.textContent = option;
+        selectElement.appendChild(optionElement);
+      });
+      
+      // 恢复之前的值（如果存在）
+      if (currentValue && options.includes(currentValue)) {
+        selectElement.value = currentValue;
+      }
+    }
+    
+    // 切换聚合设置区域显示
+    toggleAggregationBtn.addEventListener('click', function() {
+      aggregationSection.classList.toggle('active');
+      
+      if (aggregationSection.classList.contains('active')) {
+        aggregationToggleText.textContent = '隐藏聚合设置';
+        aggregationToggleIcon.classList.remove('fa-chevron-down');
+        aggregationToggleIcon.classList.add('fa-chevron-up');
+      } else {
+        aggregationToggleText.textContent = '显示聚合设置';
+        aggregationToggleIcon.classList.remove('fa-chevron-up');
+        aggregationToggleIcon.classList.add('fa-chevron-down');
+      }
+    });
+    
+    // 应用聚合
+    applyAggregationBtn.addEventListener('click', function() {
+      const groupBy = groupBySelect.value;
+      const aggregateColumn = aggregateColumnSelect.value;
+      const aggregateFunction = aggregateFunctionSelect.value;
+      
+      if (!groupBy || !aggregateColumn) {
+        showToast('请选择分组列和聚合列', 'warning');
+        return;
+      }
+      
+      // 保存聚合设置
+      aggregationSettings = {
+        groupBy,
+        aggregateColumn,
+        aggregateFunction
+      };
+      
+      // 执行聚合
+      aggregatedData = aggregateData(parsedData, groupBy, aggregateColumn, aggregateFunction);
+      isAggregationActive = true;
+      
+      // 更新聚合信息
+      updateAggregationInfo();
+      
+      // 更新UI指示
+      chartAggregationIndicator.classList.remove('hidden');
+      tableAggregationIndicator.classList.remove('hidden');
+      
+      // 重新生成图表和表格
+      generateCharts();
+      generateDataTable(false);
+      generateAggregationChart();
+      
+      // 显示聚合图表容器
+      aggregationChartContainer.classList.remove('hidden');
+      
+      showToast('数据聚合已应用', 'success');
+    });
+    
+    // 更新聚合信息显示
+    function updateAggregationInfo() {
+      if (!isAggregationActive) {
+        aggregationInfo.innerHTML = '<span class="text-dark-2">当前未应用聚合。选择分组列和聚合方式进行数据聚合。</span>';
+        return;
+      }
+      
+      const functionNames = {
+        'sum': '求和',
+        'avg': '平均值',
+        'count': '计数',
+        'max': '最大值',
+        'min': '最小值'
+      };
+      
+      aggregationInfo.innerHTML = `
+        <span class="text-dark font-medium">当前聚合: </span>
+        <span class="text-dark-2">按 <strong>${aggregationSettings.groupBy}</strong> 分组，对 <strong>${aggregationSettings.aggregateColumn}</strong> 进行 <strong>${functionNames[aggregationSettings.aggregateFunction]}</strong></span>
+        <button id="clear-aggregation" class="ml-2 text-danger hover:text-danger/80 text-sm">
+          清除
+        </button>
+      `;
+      
+      // 添加清除聚合事件
+      document.getElementById('clear-aggregation').addEventListener('click', function() {
+        resetAggregation();
+        aggregatedData = null;
+        generateCharts();
+        generateDataTable(false);
+        
+        if (aggregationChart) {
+          aggregationChart.destroy();
+          aggregationChart = null;
+        }
+        
+        aggregationChartContainer.classList.add('hidden');
+        showToast('聚合已清除', 'info');
+      });
+    }
+    
+    // 数据聚合函数
+    function aggregateData(data, groupBy, aggregateColumn, aggregateFunction) {
+      // 创建分组
+      const groups = {};
+      
+      // 遍历数据并分组
+      data.forEach(item => {
+        const groupKey = item[groupBy];
+        
+        // 如果组不存在，则创建
+        if (!groups[groupKey]) {
+          groups[groupKey] = [];
+        }
+        
+        // 将当前项的值添加到组中
+        if (item[aggregateColumn] !== undefined && item[aggregateColumn] !== null) {
+          groups[groupKey].push(item[aggregateColumn]);
+        }
+      });
+      
+      // 对每个组应用聚合函数
+      const result = [];
+      Object.keys(groups).forEach(groupKey => {
+        const values = groups[groupKey];
+        let aggregatedValue;
+        
+        switch (aggregateFunction) {
+          case 'sum':
+            aggregatedValue = values.reduce((sum, val) => sum + val, 0);
+            break;
+          case 'avg':
+            aggregatedValue = values.reduce((sum, val) => sum + val, 0) / values.length;
+            break;
+          case 'count':
+            aggregatedValue = values.length;
+            break;
+          case 'max':
+            aggregatedValue = Math.max(...values);
+            break;
+          case 'min':
+            aggregatedValue = Math.min(...values);
+            break;
+          default:
+            aggregatedValue = values.reduce((sum, val) => sum + val, 0);
+        }
+        
+        // 添加到结果数组
+        result.push({
+          [groupBy]: groupKey,
+          [getAggregateColumnName(aggregateColumn, aggregateFunction)]: aggregatedValue
+        });
+      });
+      
+      return result;
+    }
+    
+    // 获取聚合列的名称
+    function getAggregateColumnName(originalName, functionName) {
+      const functionPrefixes = {
+        'sum': '总和',
+        'avg': '平均值',
+        'count': '计数',
+        'max': '最大值',
+        'min': '最小值'
+      };
+      
+      return `${functionPrefixes[functionName]}(${originalName})`;
+    }
+    
+    // 生成图表
+    generateChartBtn.addEventListener('click', generateCharts);
+    
+    function generateCharts() {
+      const xAxis = xAxisSelect.value;
+      const yAxis = yAxisSelect.value;
+      const chartType = chartTypeSelect.value;
+      
+      if (!xAxis || (!yAxis && !['pie', 'doughnut', 'polarArea'].includes(chartType))) {
+        showToast('请选择有效的X轴和Y轴数据', 'warning');
+        return;
+      }
+      
+      // 确定使用原始数据还是聚合数据
+      const dataToUse = isAggregationActive ? aggregatedData : parsedData;
+      
+      // 准备图表数据
+      const chartData = prepareChartData(xAxis, yAxis, chartType, dataToUse);
+      
+      // 销毁现有图表
+      if (mainChart) {
+        mainChart.destroy();
+      }
+      
+      // 创建主图表
+      const mainChartCtx = document.getElementById('main-chart').getContext('2d');
+      mainChart = new Chart(mainChartCtx, {
+        type: chartType,
+        data: chartData,
+        options: getChartOptions(chartType, xAxis, yAxis)
+      });
+      
+      // 如果已应用聚合，更新聚合图表
+      if (isAggregationActive) {
+        generateAggregationChart();
+      }
+      
+      showToast('图表已更新', 'success');
+    }
+    
+    // 生成聚合结果图表
+    function generateAggregationChart() {
+      if (!isAggregationActive || !aggregatedData) return;
+      
+      const groupBy = aggregationSettings.groupBy;
+      const aggregateColumn = getAggregateColumnName(
+        aggregationSettings.aggregateColumn, 
+        aggregationSettings.aggregateFunction
+      );
+      
+      // 销毁现有图表
+      if (aggregationChart) {
+        aggregationChart.destroy();
+      }
+      
+      // 准备图表数据
+      const chartData = prepareChartData(groupBy, aggregateColumn, 'bar', aggregatedData);
+      
+      // 创建聚合图表
+      const aggregationChartCtx = document.getElementById('aggregation-chart').getContext('2d');
+      aggregationChart = new Chart(aggregationChartCtx, {
+        type: 'bar',
+        data: chartData,
+        options: getChartOptions('bar', groupBy, aggregateColumn)
+      });
+    }
+    
+    // 准备图表数据
+    function prepareChartData(xAxis, yAxis, chartType, data) {
+      // 提取X轴和Y轴数据
+      const labels = data.map(item => item[xAxis]);
+      const values = yAxis ? data.map(item => item[yAxis]) : null;
+      
+      // 主图表数据
+      const chartData = {
+        labels: labels,
+        datasets: [{
+          label: yAxis || '值',
+          data: values || labels,
+          backgroundColor: getChartColors(values ? values.length : labels.length),
+          borderColor: getChartColors(values ? values.length : labels.length, true),
+          borderWidth: 1
+        }]
+      };
+      
+      // 处理特殊图表类型
+      if (['pie', 'doughnut', 'polarArea'].includes(chartType) && !yAxis) {
+        // 对于饼图等，如果没有Y轴，统计X轴值的出现次数
+        const counts = {};
+        labels.forEach(label => {
+          counts[label] = (counts[label] || 0) + 1;
+        });
+        
+        chartData.labels = Object.keys(counts);
+        chartData.datasets[0].data = Object.values(counts);
+        chartData.datasets[0].backgroundColor = getChartColors(chartData.labels.length);
+        chartData.datasets[0].borderColor = getChartColors(chartData.labels.length, true);
+      }
+      
+      // 散点图特殊处理
+      if (chartType === 'scatter' && yAxis) {
+        chartData.datasets[0].data = data.map(item => ({
+          x: item[xAxis],
+          y: item[yAxis]
+        }));
+      }
+      
+      return chartData;
+    }
+    
+    // 获取图表颜色
+    function getChartColors(count, border = false) {
+      const baseColors = [
+        'rgba(22, 93, 255, 0.7)',
+        'rgba(54, 207, 201, 0.7)',
+        'rgba(114, 46, 209, 0.7)',
+        'rgba(82, 196, 26, 0.7)',
+        'rgba(250, 173, 20, 0.7)',
+        'rgba(255, 77, 79, 0.7)',
+        'rgba(255, 153, 0, 0.7)',
+        'rgba(153, 102, 255, 0.7)',
+        'rgba(23, 162, 184, 0.7)'
+      ];
+      
+      const borderColors = [
+        'rgba(22, 93, 255, 1)',
+        'rgba(54, 207, 201, 1)',
+        'rgba(114, 46, 209, 1)',
+        'rgba(82, 196, 26, 1)',
+        'rgba(250, 173, 20, 1)',
+        'rgba(255, 77, 79, 1)',
+        'rgba(255, 153, 0, 1)',
+        'rgba(153, 102, 255, 1)',
+        'rgba(23, 162, 184, 1)'
+      ];
+      
+      const colors = border ? borderColors : baseColors;
+      const result = [];
+      
+      for (let i = 0; i < count; i++) {
+        result.push(colors[i % colors.length]);
+      }
+      
+      return result;
+    }
+    
+    // 获取图表配置
+    function getChartOptions(chartType, xAxis, yAxis) {
+      const baseOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: isAggregationActive 
+              ? `聚合结果: ${yAxis || '数据'} 与 ${xAxis} 的关系图`
+              : `${yAxis || '数据'} 与 ${xAxis} 的关系图`
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+          }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: xAxis
+            }
+          }
+        }
+      };
+      
+      // 根据图表类型调整配置
+      switch (chartType) {
+        case 'bar':
+        case 'line':
+          return {
+            ...baseOptions,
+            scales: {
+              ...baseOptions.scales,
+              y: {
+                beginAtZero: chartType === 'bar' || !isAggregationActive,
+                title: {
+                  display: true,
+                  text: yAxis
+                }
+              }
+            }
+          };
+          
+        case 'scatter':
+          return {
+            ...baseOptions,
+            scales: {
+              x: {
+                ...baseOptions.scales.x,
+                type: 'linear',
+                position: 'bottom'
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: yAxis
+                }
+              }
+            }
+          };
+          
+        case 'radar':
+          return {
+            ...baseOptions,
+            scales: {
+              r: {
+                angleLines: {
+                  display: true
+                },
+                suggestedMin: 0
+              }
+            }
+          };
+          
+        case 'polarArea':
+          return {
+            ...baseOptions,
+            scales: {
+              r: {
+                display: false
+              }
+            }
+          };
+          
+        default: // pie, doughnut
+          return {
+            ...baseOptions,
+            scales: {
+              x: {
+                display: false
+              },
+              y: {
+                display: false
+              }
+            }
+          };
+      }
+    }
+    
+    // 生成数据表格
+    function generateDataTable(showAll = false) {
+      if ((!parsedData || parsedData.length === 0) && (!aggregatedData || aggregatedData.length === 0)) return;
+      
+      // 清空表格
+      tableHeader.innerHTML = '';
+      tableBody.innerHTML = '';
+      
+      // 确定使用原始数据还是聚合数据
+      const dataToUse = isAggregationActive ? aggregatedData : parsedData;
+      
+      // 获取列名
+      const columns = Object.keys(dataToUse[0]);
+      
+      // 创建表头
+      columns.forEach(column => {
+        const th = document.createElement('th');
+        th.className = 'px-6 py-3 text-left text-xs font-medium text-dark-2 uppercase tracking-wider';
+        th.textContent = column;
+        tableHeader.appendChild(th);
+      });
+      
+      // 确定显示的行数
+      const rowsToShow = showAll ? dataToUse.length : Math.min(5, dataToUse.length);
+      
+      // 创建表格内容
+      for (let i = 0; i < rowsToShow; i++) {
+        const tr = document.createElement('tr');
+        tr.className = i % 2 === 0 ? 'bg-white' : 'bg-light-1/50';
+        
+        columns.forEach(column => {
+          const td = document.createElement('td');
+          td.className = 'px-6 py-4 whitespace-nowrap text-sm text-dark';
+          
+          // 格式化数据显示
+          const value = dataToUse[i][column];
+          if (typeof value === 'number') {
+            // 数值型数据保留两位小数
+            td.textContent = value.toFixed(2);
+          } else if (typeof value === 'boolean') {
+            // 布尔值显示为图标
+            const icon = document.createElement('i');
+            icon.className = value ? 'fa fa-check text-success' : 'fa fa-times text-danger';
+            td.appendChild(icon);
+          } else {
+            // 其他类型直接显示
+            td.textContent = value;
+          }
+          
+          tr.appendChild(td);
+        });
+        
+        tableBody.appendChild(tr);
+      }
+      
+      // 更新数据计数
+      dataCount.textContent = `显示 ${dataToUse.length} 条数据中的 1-${rowsToShow} 条`;
+      
+      // 更新按钮文本
+      showAllDataBtn.innerHTML = showAll ? 
+        '收起 <i class="fa fa-chevron-up ml-1"></i>' : 
+        '查看全部 <i class="fa fa-chevron-down ml-1"></i>';
+      
+      // 存储当前状态
+      showAllDataBtn.dataset.showAll = showAll;
+    }
+    
+    // 查看全部/收起数据
+    showAllDataBtn.addEventListener('click', function() {
+      const showAll = this.dataset.showAll === 'true' ? false : true;
+      generateDataTable(showAll);
+    });
+    
+    // 移动端菜单切换
+    mobileMenuButton.addEventListener('click', function() {
+      mobileMenu.classList.toggle('hidden');
+    });
+    
+    // 主题切换
+    themeToggle.addEventListener('click', function() {
+      isDarkMode = !isDarkMode;
+      
+      if (isDarkMode) {
+        document.documentElement.classList.add('dark');
+        this.innerHTML = '<i class="fa fa-sun-o"></i>';
+        document.body.classList.add('bg-gray-900', 'text-white');
+        document.body.classList.remove('bg-gray-50', 'text-dark');
+        mainHeader.classList.add('bg-gray-800');
+        mainHeader.classList.remove('bg-white');
+      } else {
+        document.documentElement.classList.remove('dark');
+        this.innerHTML = '<i class="fa fa-moon-o"></i>';
+        document.body.classList.remove('bg-gray-900', 'text-white');
+        document.body.classList.add('bg-gray-50', 'text-dark');
+        mainHeader.classList.remove('bg-gray-800');
+        mainHeader.classList.add('bg-white');
+      }
+      
+      // 更新图表主题
+      if (mainChart) {
+        mainChart.update();
+      }
+      
+      if (aggregationChart) {
+        aggregationChart.update();
+      }
+      
+      // 更新字段图表
+      Object.values(fieldCharts).forEach(chart => chart.update());
+    });
+    
+    // 图表操作（下载、全屏）
+    chartActions.forEach(action => {
+      action.addEventListener('click', function() {
+        const actionType = this.dataset.action;
+        const chartId = this.closest('.bg-white').querySelector('canvas').id;
+        const chartTitle = this.closest('.bg-white').querySelector('h3').textContent.trim();
+        
+        if (actionType === 'download') {
+          downloadChart(chartId);
+        } else if (actionType === 'expand') {
+          expandChart(chartId, chartTitle);
+        }
+      });
+    });
+    
+    // 下载图表
+    function downloadChart(chartId) {
+      const canvas = document.getElementById(chartId);
+      const link = document.createElement('a');
+      link.download = `chart-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showToast('图表已下载', 'success');
+    }
+    
+    // 全屏查看图表
+    function expandChart(chartId, title) {
+      const originalCanvas = document.getElementById(chartId);
+      const originalChart = chartId === 'main-chart' ? mainChart : aggregationChart;
+      
+      // 设置模态框标题
+      modalTitle.textContent = title;
+      
+      // 销毁现有模态框图表
+      if (modalChart) {
+        modalChart.destroy();
+      }
+      
+      // 创建模态框图表
+      const modalChartCtx = modalChartCanvas.getContext('2d');
+      modalChart = new Chart(modalChartCtx, {
+        type: originalChart.config.type,
+        data: originalChart.config.data,
+        options: {
+          ...originalChart.config.options,
+          plugins: {
+            ...originalChart.config.options.plugins,
+            title: {
+              ...originalChart.config.options.plugins.title,
+              font: {
+                size: 18
+              }
+            }
+          }
+        }
+      });
+      
+      // 显示模态框
+      chartModal.classList.remove('hidden');
+      chartModal.classList.add('flex');
+    }
+    
+    // 关闭模态框
+    closeModal.addEventListener('click', function() {
+      chartModal.classList.remove('flex');
+      chartModal.classList.add('hidden');
+    });
+    
+    // 点击模态框背景关闭
+    chartModal.addEventListener('click', function(e) {
+      if (e.target === chartModal) {
+        chartModal.classList.remove('flex');
+        chartModal.classList.add('hidden');
+      }
+    });
+    
+    // 页面滚动时改变导航栏样式
+    window.addEventListener('scroll', function() {
+      if (window.scrollY > 10) {
+        mainHeader.classList.add('shadow');
+      } else {
+        mainHeader.classList.remove('shadow');
+      }
+    });
+  </script>
+</body>
+</html>

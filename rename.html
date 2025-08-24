@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件批量命名工具（拖拽排序修复版）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-top: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .description {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .upload-area {
+            border: 3px dashed #3498db;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            background: #f8fafc;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover, .upload-area.dragover {
+            background: #e1f0fa;
+            border-color: #2980b9;
+        }
+        
+        .upload-area i {
+            font-size: 50px;
+            color: #3498db;
+            margin-bottom: 15px;
+        }
+        
+        .upload-area p {
+            color: #7f8c8d;
+            margin: 10px 0;
+        }
+        
+        .upload-area .browse {
+            color: #3498db;
+            font-weight: 600;
+        }
+        
+        .file-list {
+            margin: 30px 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        .file-list-header {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 80px;
+            background: #3498db;
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            .file-list-header {
+                grid-template-columns: 1fr 2fr 80px;
+            }
+        }
+        
+        .file-item {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 80px;
+            align-items: center;
+            padding: 15px 20px;
+            background: white;
+            border-bottom: 1px solid #f1f1f1;
+            transition: all 0.3s;
+            cursor: grab;
+            position: relative;
+        }
+        
+        @media (max-width: 768px) {
+            .file-item {
+                grid-template-columns: 1fr 2fr 80px;
+            }
+            .file-size {
+                display: none;
+            }
+        }
+        
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        
+        .file-item:hover {
+            background: #f5f9ff;
+        }
+        
+        .file-item.dragging {
+            opacity: 0.7;
+            background: #e3f2fd;
+            border: 1px dashed #3498db;
+            cursor: grabbing;
+            /* 拖拽时提升层级，避免被占位符遮挡 */
+            z-index: 10;
+        }
+        
+        .file-item.placeholder {
+            background: #e1f5fe;
+            border: 2px dashed #0288d1;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0288d1;
+            font-weight: 500;
+            grid-column: 1 / -1; /* 占位符占满所有列 */
+        }
+        
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #3498db;
+            font-weight: bold;
+        }
+        
+        .file-name {
+            font-weight: 500;
+            color: #2c3e50;
+            padding: 0 10px;
+        }
+        
+        .file-size {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .file-delete {
+            color: #e74c3c;
+            border: none;
+            background: transparent;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .file-delete:hover {
+            background: #ffebee;
+            color: #c0392b;
+        }
+        
+        .naming-rules {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-weight: 600;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title i {
+            margin-right: 10px;
+            color: #3498db;
+        }
+        
+        .rule-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .rule-options {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .rule-option {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+            border: 1px solid #eaeaea;
+        }
+        
+        .rule-option h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #34495e;
+            font-weight: 500;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .preview-area {
+            background: #2c3e50;
+            border-radius: 12px;
+            padding: 25px;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .preview-title {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .preview-title i {
+            margin-right: 10px;
+            color: #1abc9c;
+        }
+        
+        .preview-list {
+            background: #34495e;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .preview-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #4a6278;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .preview-item:last-child {
+            border-bottom: none;
+        }
+        
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .btn {
+            padding: 14px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>文件批量命名工具</h1>
+    <p class="description">上传文件 → 拖拽调整顺序/删除文件 → 设置命名规则 → 批量下载</p>
+    
+    <div class="container">
+        <div class="upload-area" id="uploadArea">
+            <i>📁</i>
+            <p>拖放文件到此处或</p>
+            <p><span class="browse">浏览文件</span></p>
+            <input type="file" id="fileInput" multiple class="hidden">
+        </div>
+        
+        <div class="file-list hidden" id="fileListSection">
+            <div class="file-list-header">
+                <div>图标</div>
+                <div>文件名</div>
+                <div>大小</div>
+                <div>操作</div>
+            </div>
+            <div id="fileList"></div>
+        </div>
+        
+        <div class="naming-rules">
+            <h2 class="section-title"><i>⚙️</i> 命名规则设置</h2>
+            <div class="rule-options">
+                <div class="rule-option">
+                    <h3>前缀 + 序号 + 后缀</h3>
+                    <div class="form-group">
+                        <label for="prefix">前缀</label>
+                        <input type="text" id="prefix" placeholder="例如: 图片_">
+                    </div>
+                    <div class="form-group">
+                        <label for="startNumber">起始序号</label>
+                        <input type="number" id="startNumber" value="1" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="suffix">后缀</label>
+                        <input type="text" id="suffix" placeholder="例如: _最终版">
+                    </div>
+                </div>
+                <div class="rule-option">
+                    <h3>日期 + 分类</h3>
+                    <div class="form-group">
+                        <label for="dateFormat">日期格式</label>
+                        <select id="dateFormat">
+                            <option value="YYYY-MM-DD">YYYY-MM-DD (2023-10-05)</option>
+                            <option value="YYYYMMDD">YYYYMMDD (20231005)</option>
+                            <option value="DD-MM-YYYY">DD-MM-YYYY (05-10-2023)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="category">分类</label>
+                        <input type="text" id="category" placeholder="例如: 旅游">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="preview-area">
+            <h2 class="preview-title"> 新文件名预览</h2>
+            <div class="preview-list" id="previewList">
+                <div class="preview-item">上传文件后预览将显示在这里</div>
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button class="btn btn-primary" id="renameBtn">批量下载重命名文件</button>
+            <button class="btn btn-secondary" id="resetBtn">重置所有内容</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const fileListSection = document.getElementById('fileListSection');
+            const fileList = document.getElementById('fileList');
+            const previewList = document.getElementById('previewList');
+            const renameBtn = document.getElementById('renameBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            
+            let files = [];
+            // 新增：用全局变量存储拖拽的起始索引（避免dragover中读取dataTransfer的限制）
+            let draggingIndex = -1;
+            
+            // ===================== 文件上传功能 =====================
+            uploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files);
+            });
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    handleFiles(e.dataTransfer.files);
+                }
+            });
+            
+            function handleFiles(fileList) {
+                const newFiles = Array.from(fileList).filter(newFile => 
+                    !files.some(existFile => 
+                        existFile.name === newFile.name && existFile.size === newFile.size
+                    )
+                );
+                
+                if (newFiles.length === 0) {
+                    alert('所选文件已全部上传，无需重复添加！');
+                    return;
+                }
+                
+                files = [...files, ...newFiles];
+                renderFileList();
+                updatePreview();
+                fileListSection.classList.remove('hidden');
+            }
+            
+            // ===================== 核心修复：拖拽排序逻辑 =====================
+            function renderFileList() {
+                fileList.innerHTML = '';
+                
+                if (files.length === 0) {
+                    fileListSection.classList.add('hidden');
+                    return;
+                }
+                
+                files.forEach((file, index) => {
+                    const ext = file.name.split('.').pop() || 'file';
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.draggable = true;
+                    fileItem.dataset.index = index;
+                    
+                    fileItem.innerHTML = `
+                        <div class="file-icon">${ext.toUpperCase()}</div>
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-size">${formatFileSize(file.size)}</div>
+                        <button class="file-delete" data-index="${index}">删除</button>
+                    `;
+                    
+                    // ===================== 删除功能 =====================
+                    const deleteBtn = fileItem.querySelector('.file-delete');
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const deleteIndex = parseInt(e.currentTarget.dataset.index);
+                        files.splice(deleteIndex, 1);
+                        renderFileList();
+                        updatePreview();
+                    });
+                    
+                    // ===================== 拖拽排序（修复核心） =====================
+                    // 1. 拖拽开始：记录起始索引（存入全局变量，而非依赖dataTransfer）
+                    fileItem.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.effectAllowed = 'move'; // 明确拖拽行为为“移动”
+                        draggingIndex = index; // 用全局变量存储起始索引
+                        // 延迟添加拖拽样式，确保浏览器识别拖拽状态
+                        setTimeout(() => {
+                            fileItem.classList.add('dragging');
+                        }, 0);
+                    });
+                    
+                    // 2. 拖拽结束：重置全局变量+清除样式
+                    fileItem.addEventListener('dragend', () => {
+                        draggingIndex = -1; // 重置起始索引
+                        fileItem.classList.remove('dragging');
+                        // 清除所有占位符
+                        document.querySelectorAll('.file-item.placeholder').forEach(ph => ph.remove());
+                    });
+                    
+                    // 3. 拖拽经过：显示占位符（仅当有正在拖拽的文件时）
+                    fileItem.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move'; // 显示“移动”光标反馈
+                        
+                        // 仅当有正在拖拽的文件，且不是拖拽自身时，显示占位符
+                        if (draggingIndex !== -1 && draggingIndex !== index) {
+                            // 清除现有占位符，避免重复创建
+                            document.querySelectorAll('.file-item.placeholder').forEach(ph => ph.remove());
+                            
+                            // 创建占位符
+                            const placeholder = document.createElement('div');
+                            placeholder.className = 'file-item placeholder';
+                            placeholder.textContent = '松开鼠标插入此处';
+                            
+                            // 根据拖拽方向插入占位符（上方/下方）
+                            if (draggingIndex < index) {
+                                fileItem.after(placeholder); // 起始索引小 → 插入到当前项下方
+                            } else {
+                                fileItem.before(placeholder); // 起始索引大 → 插入到当前项上方
+                            }
+                        }
+                    });
+                    
+                    // 4. 拖拽离开：清除当前项附近的占位符（避免残留）
+                    fileItem.addEventListener('dragleave', () => {
+                        if (draggingIndex !== -1) {
+                            const placeholders = document.querySelectorAll('.file-item.placeholder');
+                            // 仅清除当前项前后的占位符，避免误删其他位置
+                            placeholders.forEach(ph => {
+                                if (ph.previousElementSibling === fileItem || ph.nextElementSibling === fileItem) {
+                                    ph.remove();
+                                }
+                            });
+                        }
+                    });
+                    
+                    // 5. 拖拽释放：调整文件顺序（核心执行步骤）
+                    fileItem.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        // 清除所有占位符
+                        document.querySelectorAll('.file-item.placeholder').forEach(ph => ph.remove());
+                        
+                        // 仅当有正在拖拽的文件，且不是拖拽自身时，执行排序
+                        if (draggingIndex !== -1 && draggingIndex !== index) {
+                            // 从数组中取出拖拽的文件
+                            const movedFile = files.splice(draggingIndex, 1)[0];
+                            // 插入到目标位置（index）
+                            files.splice(index, 0, movedFile);
+                            
+                            // 重新渲染列表+更新预览（顺序同步生效）
+                            renderFileList();
+                            updatePreview();
+                        }
+                    });
+                    
+                    fileList.appendChild(fileItem);
+                });
+            }
+            
+            // ===================== 文件名预览功能 =====================
+            function updatePreview() {
+                previewList.innerHTML = '';
+                
+                if (files.length === 0) {
+                    previewList.innerHTML = '<div class="preview-item">上传文件后预览将显示在这里</div>';
+                    return;
+                }
+                
+                const prefix = document.getElementById('prefix').value;
+                const startNumber = parseInt(document.getElementById('startNumber').value);
+                const suffix = document.getElementById('suffix').value;
+                const dateFormat = document.getElementById('dateFormat').value;
+                const category = document.getElementById('category').value.trim();
+                
+                const today = new Date();
+                let dateStr = '';
+                switch(dateFormat) {
+                    case 'YYYY-MM-DD':
+                        dateStr = today.toISOString().split('T')[0];
+                        break;
+                    case 'YYYYMMDD':
+                        dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+                        break;
+                    case 'DD-MM-YYYY':
+                        const [y, m, d] = today.toISOString().split('T')[0].split('-');
+                        dateStr = `${d}-${m}-${y}`;
+                        break;
+                }
+                
+                files.forEach((file, index) => {
+                    const ext = file.name.split('.').pop() || 'file';
+                    let newFileName = '';
+                    
+                    if (category) {
+                        newFileName = `${dateStr}_${category}_${index + 1}.${ext}`;
+                    } else {
+                        newFileName = `${prefix}${startNumber + index}${suffix}.${ext}`;
+                    }
+                    
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'preview-item';
+                    previewItem.textContent = newFileName;
+                    previewList.appendChild(previewItem);
+                });
+            }
+            
+            // ===================== 批量下载功能 =====================
+            renameBtn.addEventListener('click', async () => {
+                if (files.length === 0) {
+                    alert('请先上传文件再执行下载！');
+                    return;
+                }
+                
+                const prefix = document.getElementById('prefix').value;
+                const startNumber = parseInt(document.getElementById('startNumber').value);
+                const suffix = document.getElementById('suffix').value;
+                const dateFormat = document.getElementById('dateFormat').value;
+                const category = document.getElementById('category').value.trim();
+                
+                const today = new Date();
+                let dateStr = '';
+                switch(dateFormat) {
+                    case 'YYYY-MM-DD':
+                        dateStr = today.toISOString().split('T')[0];
+                        break;
+                    case 'YYYYMMDD':
+                        dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+                        break;
+                    case 'DD-MM-YYYY':
+                        const [y, m, d] = today.toISOString().split('T')[0].split('-');
+                        dateStr = `${d}-${m}-${y}`;
+                        break;
+                }
+                
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const ext = file.name.split('.').pop() || 'file';
+                    let newFileName = '';
+                    
+                    if (category) {
+                        newFileName = `${dateStr}_${category}_${i + 1}.${ext}`;
+                    } else {
+                        newFileName = `${prefix}${startNumber + i}${suffix}.${ext}`;
+                    }
+                    
+                    const fileBlob = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            resolve(new Blob([e.target.result], { type: file.type }));
+                        };
+                        reader.readAsArrayBuffer(file);
+                    });
+                    
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = URL.createObjectURL(fileBlob);
+                    downloadLink.download = newFileName;
+                    
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    
+                    document.body.removeChild(downloadLink);
+                    URL.revokeObjectURL(downloadLink.href);
+                    
+                    await new Promise(resolve => setTimeout(resolve, 150));
+                }
+                
+                alert(`已触发 ${files.length} 个文件的下载！请在浏览器下载栏查看。`);
+            });
+            
+            // ===================== 重置功能 =====================
+            resetBtn.addEventListener('click', () => {
+                files = [];
+                fileInput.value = '';
+                fileListSection.classList.add('hidden');
+                document.getElementById('prefix').value = '';
+                document.getElementById('startNumber').value = '1';
+                document.getElementById('suffix').value = '';
+                document.getElementById('category').value = '';
+                document.getElementById('dateFormat').value = 'YYYY-MM-DD';
+                updatePreview();
+            });
+            
+            // ===================== 辅助函数 =====================
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+            
+            // ===================== 实时更新预览 =====================
+            document.getElementById('prefix').addEventListener('input', updatePreview);
+            document.getElementById('startNumber').addEventListener('input', updatePreview);
+            document.getElementById('suffix').addEventListener('input', updatePreview);
+            document.getElementById('dateFormat').addEventListener('change', updatePreview);
+            document.getElementById('category').addEventListener('input', updatePreview);
+        });
+    </script>
+</body>
+</html>

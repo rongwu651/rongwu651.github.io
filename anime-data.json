@@ -2423,5 +2423,209 @@
     ],
     "director": "柳伸亮",
     "favorite": false
+  },
+  {
+    "id": 65,
+    "title": "我推的孩子",
+    "image": "./images/我推的孩子.webp",
+    "tags": [
+      "恋爱",
+      "悬疑",
+      "偶像",
+      "职场",
+      "社会",
+      "漫改",
+      "剧情"
+    ],
+    "status": "部分观看",
+    "star": 4.5,
+    "seasons": [
+      {
+        "season": 1,
+        "title": "我推的孩子",
+        "episodes": "11",
+        "airing": "2023",
+        "status": "已看完",
+        "star": 5,
+        "image": "./images/我推的孩子.webp",
+        "description": "“在演艺圈里，谎言就是武器。”<br>在小城市工作的妇产科医生・五郎，有一天他所推的偶像“B小町”出现在了他的面前。<br>“B小町”有着一个禁忌的秘密。<br>如此这般的两人实现了最糟糕的相遇，从此命运的齿轮开始转动——"
+      },
+      {
+        "season": 2,
+        "title": "我推的孩子 第二季",
+        "episodes": "13",
+        "airing": "2024",
+        "status": "已看完",
+        "star": 4.5,
+        "image": "./images/我推的孩子_s2.webp",
+        "description": "新的舞台开幕了...<br>当红漫画《东京BLADE》的舞台剧开始排练了。<br>被剧团LALALAI的众演员包围，让加奈的演技大爆发。<br>一边认加奈实力，却同时激起猛烈竞争心的黑川茜。<br>在一群才华洋溢又充满热情的演员中，阿库亚利用自身演技，来追查爱当年的丧命真相...。<br>以及成为偶像后，不断追寻着母亲背影的露比..."
+      },
+      {
+        "season": 3,
+        "title": "我推的孩子 第三季",
+        "episodes": "0",
+        "airing": "2026",
+        "status": "未看",
+        "star": 0,
+        "image": "./images/我推的孩子_s3.webp",
+        "description": "暂未播出"
+      }
+    ],
+    "director": "平牧大輔",
+    "favorite": false
+  },
+  {
+    "id": 66,
+    "title": "无限彩的怪异世界",
+    "image": "./images/无限彩的怪异世界.webp",
+    "tags": [],
+    "status": "已看完",
+    "star": 0,
+    "seasons": [
+      {
+        "season": 1,
+        "title": "",
+        "episodes": "",
+        "airing": "",
+        "status": "已看完",
+        "star": 0,
+        "image": "./images/无限彩的怪异世界_s1.webp",
+        "description": "暂未播出"
+      }
+    ],
+    "director": "",
+    "favorite": false
+  },
+  {
+    "id": 67,
+    "title": "和班上最讨厌的女生结婚",
+    "image": "./images/和班上最讨厌的女生结婚.webp",
+    "tags": [],
+    "status": "已看完",
+    "star": 0,
+    "seasons": [
+      {
+        "season": 1,
+        "title": "",
+        "episodes": "",
+        "airing": "",
+        "status": "已看完",
+        "star": 0,
+        "image": "./images/和班上最讨厌的女生结婚_s1.webp",
+        "description": "暂未播出"
+      }
+    ],
+    "director": "",
+    "favorite": false
+  },
+  {
+    "id": 68,
+    "title": "我的可爱对黑岩目高不管用",
+    "image": "./images/我的可爱对黑岩目高不管用.webp",
+    "tags": [],
+    "status": "已看完",
+    "star": 0,
+    "seasons": [
+      {
+        "season": 1,
+        "title": "",
+        "episodes": "",
+        "airing": "",
+        "status": "已看完",
+        "star": 0,
+        "image": "./images/我的可爱对黑岩目高不管用_s1.webp",
+        "description": "暂未播出"
+      }
+    ],
+    "director": "",
+    "favorite": false
+  },
+  {
+    "id": 69,
+    "title": "火影忍者",
+    "image": "./images/火影忍者.webp",
+    "tags": [],
+    "status": "已看完",
+    "star": 0,
+    "seasons": [
+      {
+        "season": 1,
+        "title": "",
+        "episodes": "",
+        "airing": "",
+        "status": "已看完",
+        "star": 0,
+        "image": "./images/火影忍者_s1.webp",
+        "description": "暂未播出"
+      }
+    ],
+    "director": "",
+    "favorite": false
+  },
+  {
+    "id": 70,
+    "title": "恋如雨止",
+    "image": "./images/恋如雨止.webp",
+    "tags": [],
+    "status": "已看完",
+    "star": 0,
+    "seasons": [
+      {
+        "season": 1,
+        "title": "",
+        "episodes": "",
+        "airing": "",
+        "status": "已看完",
+        "star": 0,
+        "image": "./images/恋如雨止_s1.webp",
+        "description": "暂未播出"
+      }
+    ],
+    "director": "",
+    "favorite": false
+  },
+  {
+    "id": 71,
+    "title": "至高之牌",
+    "image": "./images/至高之牌.webp",
+    "tags": [],
+    "status": "已看完",
+    "star": 0,
+    "seasons": [
+      {
+        "season": 1,
+        "title": "",
+        "episodes": "",
+        "airing": "",
+        "status": "已看完",
+        "star": 0,
+        "image": "./images/至高之牌_s1.webp",
+        "description": "暂未播出"
+      }
+    ],
+    "director": "",
+    "favorite": false
+  },
+  {
+    "id": 72,
+    "title": "香格里拉",
+    "image": "./images/香格里拉.webp",
+    "tags": [],
+    "status": "已看完",
+    "star": 0,
+    "seasons": [
+      {
+        "season": 1,
+        "title": "",
+        "episodes": "",
+        "airing": "",
+        "status": "已看完",
+        "star": 0,
+        "image": "./images/香格里拉_s1.webp",
+        "description": "暂未播出"
+      }
+    ],
+    "director": "",
+    "favorite": false
   }
 ]
