@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>在线文件分享</title>
+  <!-- 引入外部资源 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  
+  <!-- 配置Tailwind -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#165DFF',
+            secondary: '#36CFC9',
+            accent: '#722ED1',
+            success: '#52C41A',
+            warning: '#FAAD14',
+            danger: '#FF4D4F',
+            dark: '#1D2129',
+            'dark-2': '#4E5969',
+            'light-1': '#F2F3F5',
+            'light-2': '#E5E6EB',
+            'light-3': '#C9CDD4'
+          },
+          fontFamily: {
+            inter: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  
+  <!-- 自定义工具类 -->
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .text-shadow {
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+    }
+  </style>
+  
+  <style>
+    /* 基础动画 */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-fadeIn {
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+  </style>
+</head>
+
+<body class="font-inter bg-gray-50 text-dark min-h-screen flex flex-col">
+  <!-- 顶部导航栏 -->
+  <header class="bg-white shadow-sm sticky top-0 z-50 transition-all duration-300" id="main-header">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <!-- 品牌标识 -->
+        <div class="flex items-center">
+          <div class="flex-shrink-0 flex items-center">
+            <i class="fa fa-share-alt text-primary text-2xl mr-2"></i>
+            <span class="text-xl font-bold text-primary">FolderPort在线文件分享</span>
+          </div>
+          <nav class="hidden md:ml-10 md:flex md:space-x-8">
+            <a href="#" class="text-primary border-b-2 border-primary px-1 pt-1 inline-flex items-center text-sm font-medium">
+              <i class="fa fa-home mr-1"></i> 首页
+            </a>
+          </nav>
+        </div>
+        
+        <!-- 右侧操作区 -->
+        <div class="flex items-center">
+          <!-- 主题切换 -->
+          <button type="button" id="theme-toggle" class="p-2 rounded-full text-dark-2 hover:bg-light-1 transition-colors">
+            <i class="fa fa-moon-o"></i>
+          </button>
+          
+          <!-- 用户菜单 -->
+          <div class="ml-4 relative">
+            <div>
+              <button type="button" class="flex items-center max-w-xs rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-primary" id="user-menu-button">
+                <img class="h-8 w-8 rounded-full object-cover" src="http://www.datazzh.top/wp-content/uploads/2024/07/OIP-C.jpeg" alt="头像">
+              </button>
+            </div>
+          </div>
+          
+          <!-- 移动端菜单按钮 -->
+          <div class="-mr-2 flex items-center md:hidden">
+            <button type="button" class="inline-flex items-center justify-center p-2 rounded-md text-dark-2 hover:text-primary hover:bg-light-1 focus:outline-none" id="mobile-menu-button">
+              <i class="fa fa-bars text-xl"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 移动端菜单 -->
+    <div class="hidden md:hidden animate-fadeIn" id="mobile-menu">
+      <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white">
+        <a href="#" class="bg-primary/10 text-primary block px-3 py-2 rounded-md text-base font-medium">
+          <i class="fa fa-home mr-1"></i> 首页
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主内容区 -->
+  <main class="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- 页面标题 -->
+    <div class="mb-8 animate-fadeIn">
+      <h1 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-2">FolderPort</h1>
+	  <a href="https://folderport.com/zh/doc"><p class="text-dark-2 max-w-3xl" style="color: #165DFF;">点击此处，前往官网</p></a>
+      <p class="text-dark-2 max-w-3xl">FolderPort 是一个安全的浏览器文件分享平台，允许您在不注册的情况下与他人分享文件和文件夹</p>
+    </div>
+    
+    <!-- 主要内容布局：左侧2/3 右侧1/3 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fadeIn" style="animation-delay: 0.1s">
+      <!-- 左侧 2/3 区域 - 嵌套网页 -->
+      <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-light-2 overflow-hidden h-[600px]">
+        <div class="p-4 border-b border-light-2">
+          <h2 class="font-semibold text-dark flex items-center">
+            <i class="fa fa-file-text-o text-primary mr-2"></i>
+            文件分享工具
+          </h2>
+        </div>
+        <!-- 嵌套网页 -->
+        <iframe 
+          src="https://folderport.com/zh/share" 
+          class="w-full h-[calc(100%-57px)] border-0" 
+          title="在线文件分享工具"
+          sandbox="allow-scripts allow-forms allow-popups allow-downloads allow-same-origin">
+        </iframe>
+      </div>
+      
+      <!-- 右侧 1/3 区域 - 文字介绍 -->
+      <div class="lg:col-span-1 space-y-6">
+        <!-- 功能介绍卡片 -->
+        <div class="bg-white rounded-xl shadow-sm border border-light-2 p-6">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fa fa-info-circle text-primary mr-2"></i>
+            功能介绍
+          </h3>
+          <ul class="space-y-3 text-dark-2">
+            <li class="flex items-start">
+              <i class="fa fa-check-circle text-success mt-1 mr-2"></i>
+              <span>无需安装任何软件，打开浏览器即可开始分享。基于 P2P 技术，文件直传更安全</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fa fa-check-circle text-success mt-1 mr-2"></i>
+              <span>图片、音频、视频文件即刻在线预览，让分享体验更加流畅自然</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fa fa-check-circle text-success mt-1 mr-2"></i>
+              <span>突破文件大小限制，告别文件分割烦恼，轻松传输任意大小文件</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fa fa-check-circle text-success mt-1 mr-2"></i>
+              <span>可设置 AES 加密口令，全程加密传输，保护您的数据安全，让分享更有保障</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fa fa-check-circle text-success mt-1 mr-2"></i>
+              <span>支持 Windows、Mac、Android、iOS，随时随地轻松分享</span>
+            </li>
+			<li class="flex items-start">
+			  <i class="fa fa-check-circle text-success mt-1 mr-2"></i>
+			  <span>支持一次连接两端互传，让文件分享更灵活</span>
+			</li>
+          </ul>
+        </div>
+        
+        <!-- 使用指南卡片 -->
+        <div class="bg-white rounded-xl shadow-sm border border-light-2 p-6">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fa fa-book text-primary mr-2"></i>
+            使用指南（分享期间请勿退出或刷新浏览器）
+          </h3>
+          <ol class="space-y-3 text-dark-2 list-decimal pl-5">
+            <li>点击左侧区域的"分享文件"按钮左侧框</li>
+            <li>等待文件上传完成，点击分享文件</li>
+            <li>点击未分享，获取生成的分享链接</li>
+            <li>将链接发送给需要接收文件的人</li>
+            <li>对方通过链接下载文件</li>
+          </ol>
+        </div>
+        
+        <!-- 注意事项卡片 -->
+        <div class="bg-light-1 rounded-xl p-5 border border-light-2">
+          <h3 class="text-lg font-semibold mb-3 flex items-center">
+            <i class="fa fa-exclamation-triangle text-warning mr-2"></i>
+            注意事项
+          </h3>
+          <p class="text-dark-2 text-sm">
+            请勿上传违法、侵权或色情内容，文件大小有限制，超大文件建议使用专门的文件传输工具。所有上传的文件请遵守相关法律法规。
+          </p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="bg-white border-t border-light-2 py-6 mt-10">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row justify-between items-center">
+        <div class="flex items-center mb-4 md:mb-0">
+          <i class="fa fa-share-alt text-primary text-xl mr-2"></i>
+          <span class="text-lg font-bold text-primary">在线文件分享</span>
+          <span class="ml-2 text-dark-2 text-sm">© 文件分享工具</span>
+        </div>
+        <div class="flex space-x-6">
+          <!-- <a href="#" class="text-dark-2 hover:text-primary transition-colors">
+            <i class="fa fa-question-circle"></i> 帮助中心
+          </a>
+          <a href="#" class="text-dark-2 hover:text-primary transition-colors">
+            <i class="fa fa-shield"></i> 隐私政策
+          </a>
+          <a href="#" class="text-dark-2 hover:text-primary transition-colors">
+            <i class="fa fa-file-text-o"></i> 使用条款
+          </a> -->
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 通知提示组件 -->
+  <div id="toast" class="fixed bottom-4 right-4 bg-dark text-white px-4 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center z-50">
+    <i id="toast-icon" class="fa fa-info-circle mr-2"></i>
+    <span id="toast-message">通知消息</span>
+  </div>
+
+  <script>
+    // DOM 元素
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const themeToggle = document.getElementById('theme-toggle');
+    const mainHeader = document.getElementById('main-header');
+    const toast = document.getElementById('toast');
+    const toastIcon = document.getElementById('toast-icon');
+    const toastMessage = document.getElementById('toast-message');
+    let isDarkMode = false;
+    
+    // 移动端菜单切换
+    mobileMenuButton.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+    });
+    
+    // 主题切换
+    themeToggle.addEventListener('click', () => {
+      isDarkMode = !isDarkMode;
+      document.body.classList.toggle('bg-gray-900', isDarkMode);
+      document.body.classList.toggle('bg-gray-50', !isDarkMode);
+      document.body.classList.toggle('text-white', isDarkMode);
+      document.body.classList.toggle('text-dark', !isDarkMode);
+      
+      // 更新主题图标
+      const icon = themeToggle.querySelector('i');
+      if (isDarkMode) {
+        icon.classList.remove('fa-moon-o');
+        icon.classList.add('fa-sun-o');
+      } else {
+        icon.classList.remove('fa-sun-o');
+        icon.classList.add('fa-moon-o');
+      }
+      
+      showToast(isDarkMode ? '已切换至深色模式' : '已切换至浅色模式', 'info');
+    });
+    
+    // 滚动时改变导航栏样式
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 10) {
+        mainHeader.classList.add('shadow');
+        mainHeader.classList.remove('shadow-sm');
+      } else {
+        mainHeader.classList.remove('shadow');
+        mainHeader.classList.add('shadow-sm');
+      }
+    });
+    
+    // 显示通知
+    function showToast(message, type = 'info') {
+      toastMessage.textContent = message;
+      
+      // 设置图标和颜色
+      toastIcon.className = '';
+      switch(type) {
+        case 'success':
+          toastIcon.className = 'fa fa-check-circle mr-2';
+          toast.classList.add('bg-success');
+          toast.classList.remove('bg-danger', 'bg-warning', 'bg-primary', 'bg-dark');
+          break;
+        case 'error':
+          toastIcon.className = 'fa fa-exclamation-circle mr-2';
+          toast.classList.add('bg-danger');
+          toast.classList.remove('bg-success', 'bg-warning', 'bg-primary', 'bg-dark');
+          break;
+        case 'warning':
+          toastIcon.className = 'fa fa-exclamation-triangle mr-2';
+          toast.classList.add('bg-warning');
+          toast.classList.remove('bg-success', 'bg-danger', 'bg-primary', 'bg-dark');
+          break;
+        default:
+          toastIcon.className = 'fa fa-info-circle mr-2';
+          toast.classList.add('bg-primary');
+          toast.classList.remove('bg-success', 'bg-danger', 'bg-warning', 'bg-dark');
+      }
+      
+      // 显示通知
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-1');
+      
+      // 3秒后隐藏
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-1');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
