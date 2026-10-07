@@ -1,1 +1,22 @@
-hello
+---
+layout: null
+---
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>页面导航</title>
+</head>
+<body>
+  <h1>页面列表</h1>
+  <ul>
+    {% for file in site.html_pages %}
+      {% if file.name != "index.html" %}
+        <li>
+          <a href="{{ file.url | relative_url }}">{{ file.name }}</a>
+        </li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+</body>
+</html>
